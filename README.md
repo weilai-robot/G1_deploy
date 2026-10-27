@@ -1,5 +1,7 @@
 # Unitree RL Lab
 
+G1 EDU U2 / BeyondMimic deployment: [远程登录后，从 git pull 到真机试运行](docs/G1_真机从git_pull到运行.md) · [模型接口与验证范围](docs/G1_BeyondMimic_部署流程.md).
+
 [![IsaacSim](https://img.shields.io/badge/IsaacSim-5.1.0-silver.svg)](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html)
 [![Isaac Lab](https://img.shields.io/badge/IsaacLab-2.3.0-silver)](https://isaac-sim.github.io/IsaacLab)
 [![License](https://img.shields.io/badge/license-Apache2.0-yellow.svg)](https://opensource.org/license/apache-2-0)

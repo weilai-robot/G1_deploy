@@ -130,11 +130,18 @@ inline po::variables_map helper(int argc, char** argv)
         ("version,v", "show version")
         ("log", "record log file")
         ("network,n", po::value<std::string>()->default_value(""), "dds network interface")
+        ("domain", po::value<int>()->default_value(0), "DDS domain (use a separate domain for simulation)")
+        ("config", po::value<std::string>(), "explicit FSM configuration file")
         ;
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+
+    if (vm.count("config")) {
+        auto path = std::filesystem::absolute(vm["config"].as<std::string>());
+        config = YAML::LoadFile(path.string());
+    }
 
     if (vm.count("help"))
     {

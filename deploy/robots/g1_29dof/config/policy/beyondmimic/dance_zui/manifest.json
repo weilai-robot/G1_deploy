@@ -1,0 +1,15 @@
+{
+  "checkpoint": "dance_zui_model_4999.pt",
+  "checkpoint_sha256": "4ee17644c8cca383dc4881dd1b1ffed5f6edc8715292a214a77e5d93be439835",
+  "motion": "dance_zui.npz",
+  "motion_sha256": "ec80d22d144475b92dab26a73ed3823e4d8c29a4c6dd12131e25b3f2cb1253c4",
+  "policy_sha256": "2683045026272e821bba6d0a5c8b845d78b09c73d0ce35c055c3a3bc2fd0f956",
+  "reference_sha256": "56d82205bb4a5cef9b1ecbe7a5ed2bae78053b8f00c1b8ac9a1479f9b25c0f75",
+  "urdf_sha256": "dbc8471004e9b0b85c27a4ebc1f0d90a727c1cf7ca9ef507b805596f2004d64b",
+  "deploy_yaml_sha256": "f3e81555429c523f02a3280f411e06f3d4ea5448c9cacb1fbf78c3f9cdb6e549",
+  "frames": 11384,
+  "fps": 50.0,
+  "normalizer_epsilon": 0.01,
+  "onnx_parity_samples": 64,
+  "onnx_max_abs_error": 2.384185791015625e-06
+}

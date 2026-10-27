@@ -3,6 +3,11 @@
 #include "FSM/State_FixStand.h"
 #include "FSM/State_RLBase.h"
 #include "State_Mimic.h"
+#include "State_BeyondMimic.h"
+#include <csignal>
+
+volatile std::sig_atomic_t stop_requested = 0;
+void request_stop(int) { stop_requested = 1; }
 
 std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
 std::shared_ptr<LowState_t> FSMState::lowstate = nullptr;
@@ -15,8 +20,7 @@ void init_fsm_state()
     if(!lowcmd_sub->isTimeout())
     {
         spdlog::critical("The other process is using the lowcmd channel, please close it first.");
-        unitree::robot::go2::shutdown();
-        // exit(0);
+        std::exit(1);
     }
     FSMState::lowcmd = std::make_unique<LowCmd_t>();
     FSMState::lowstate = std::make_shared<LowState_t>();
@@ -29,12 +33,17 @@ int main(int argc, char** argv)
 {
     // Load parameters
     auto vm = param::helper(argc, argv);
+    const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
+    if(beyondmimic && vm["network"].as<std::string>().empty()) {
+        std::cerr << "BeyondMimic requires an explicit --network (lo for simulation).\n";
+        return 1;
+    }
 
     std::cout << " --- Unitree Robotics --- \n";
     std::cout << "     G1-29dof Controller \n";
 
     // Unitree DDS Config
-    unitree::robot::ChannelFactory::Instance()->Init(0, vm["network"].as<std::string>());
+    unitree::robot::ChannelFactory::Instance()->Init(vm["domain"].as<int>(), vm["network"].as<std::string>());
 
     init_fsm_state();
 
@@ -49,11 +58,25 @@ int main(int argc, char** argv)
     fsm->start();
 
     std::cout << "Press [L2 + Up] to enter FixStand mode.\n";
-    std::cout << "And then press [R1 + X] to start controlling the robot.\n";
+    if(beyondmimic) {
+        std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
+        std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
+    } else {
+        std::cout << "And then press [R1 + X] to start controlling the robot.\n";
+    }
 
-    while (true)
+    std::signal(SIGINT, request_stop);
+    std::signal(SIGTERM, request_stop);
+    while (!stop_requested)
     {
         sleep(1);
+    }
+
+    fsm->request_shutdown();
+    for(int i=0;i<100 && !fsm->shutdown_complete();++i) usleep(10000);
+    if(!fsm->shutdown_complete()) {
+        spdlog::critical("Controller shutdown timeout; check robot damping and fall-arrest support");
+        std::_Exit(1);
     }
     
     return 0;

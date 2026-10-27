@@ -7,6 +7,7 @@
 #include "BaseState.h"
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
+#include <atomic>
 
 class CtrlFSM
 {
@@ -72,8 +73,13 @@ public:
     
     ~CtrlFSM()
     {
+        fsm_thread_.reset();
+        if(currentState) currentState->exit();
         states.clear();
     }
+
+    void request_shutdown() { shutdown_requested_ = true; }
+    bool shutdown_complete() const { return shutdown_complete_.load(); }
 
     std::vector<std::shared_ptr<BaseState>> states;
 private:
@@ -81,6 +87,22 @@ private:
 
     void run_()
     {
+        if(shutdown_requested_) {
+            if(currentState->getStateString() != "Passive") {
+                auto previous=currentState;
+                for(auto& state:states) if(state->getStateString()=="Passive") { currentState=state; break; }
+                currentState->enter();
+                currentState->pre_run();
+                currentState->run();
+                currentState->post_run(); // publish damping before waiting for a policy thread
+                previous->exit();
+            }
+            currentState->pre_run();
+            currentState->run();
+            currentState->post_run();
+            shutdown_complete_=true;
+            return;
+        }
         currentState->pre_run();
         currentState->run();
         currentState->post_run();
@@ -114,4 +136,5 @@ private:
 
     std::shared_ptr<BaseState> currentState;
     unitree::common::RecurrentThreadPtr fsm_thread_;
+    std::atomic<bool> shutdown_requested_{false},shutdown_complete_{false};
 };

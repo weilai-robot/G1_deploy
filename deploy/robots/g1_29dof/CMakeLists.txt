@@ -1,31 +1,58 @@
-cmake_minimum_required(VERSION 3.12)
-project(g1_29dof_controller)
-
+cmake_minimum_required(VERSION 3.16)
+project(g1_29dof_controller LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
+option(BUILD_ROBOT_CONTROLLER "Build the Linux Unitree DDS controller" ON)
+option(BUILD_BEYONDMIMIC_OFFLINE "Build the hardware-free parity/simulation executable" ON)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(yaml-cpp REQUIRED)
+if(TARGET yaml-cpp::yaml-cpp)
+  set(YAML_TARGET yaml-cpp::yaml-cpp)
+else()
+  set(YAML_TARGET yaml-cpp)
+endif()
 
-include_directories(
-  /usr/include/eigen3
-  /usr/local/include/ddscxx # dds
-  /usr/local/include/iceoryx/v2.0.2 # dds
-  include
-  ${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0/include
-  ${PROJECT_SOURCE_DIR}/../../include/
-)
+set(ONNXRUNTIME_ROOT "${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0" CACHE PATH "ONNX Runtime distribution root; use Linux aarch64 distribution on the G1 onboard ARM computer")
+find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h HINTS "${ONNXRUNTIME_ROOT}/include")
+find_library(ONNXRUNTIME_LIBRARY NAMES onnxruntime libonnxruntime.so.1.22.0 HINTS "${ONNXRUNTIME_ROOT}/lib")
+if(NOT ONNXRUNTIME_INCLUDE_DIR OR NOT ONNXRUNTIME_LIBRARY)
+  message(FATAL_ERROR "ONNX Runtime headers/library not found; set ONNXRUNTIME_ROOT for this computer's architecture.")
+endif()
+add_library(beyondmimic_runtime INTERFACE)
+target_include_directories(beyondmimic_runtime INTERFACE "${PROJECT_SOURCE_DIR}/../../include" "${ONNXRUNTIME_INCLUDE_DIR}")
+target_link_libraries(beyondmimic_runtime INTERFACE Eigen3::Eigen ${YAML_TARGET} "${ONNXRUNTIME_LIBRARY}")
 
-link_libraries(
-  unitree_sdk2 ddsc ddscxx rt pthread # dds
-  libboost_program_options.a libyaml-cpp.a fmt
-  ${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1.22.0
-)
+if(BUILD_BEYONDMIMIC_OFFLINE)
+  add_executable(beyondmimic_offline ../../tools/beyondmimic_offline.cpp)
+  target_link_libraries(beyondmimic_offline PRIVATE beyondmimic_runtime)
+endif()
 
-file(GLOB_RECURSE ADD_SRC_LIST
-  ${PROJECT_SOURCE_DIR}/src/*.cpp
-)
-
-add_library(${PROJECT_NAME}_lib ${ADD_SRC_LIST})
-link_libraries(${PROJECT_NAME}_lib)
-
-add_executable(g1_ctrl main.cpp)
+if(BUILD_ROBOT_CONTROLLER)
+  if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "Unitree DDS controller requires Linux. Use -DBUILD_ROBOT_CONTROLLER=OFF for offline verification on macOS.")
+  endif()
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64" AND ONNXRUNTIME_ROOT MATCHES "linux-x64")
+    message(FATAL_ERROR "Bundled ONNX Runtime is x86_64. Set ONNXRUNTIME_ROOT to the Linux aarch64 distribution.")
+  endif()
+  find_package(Boost REQUIRED COMPONENTS program_options)
+  find_package(spdlog REQUIRED)
+  find_package(fmt REQUIRED)
+  find_package(Threads REQUIRED)
+  find_path(UNITREE_SDK_INCLUDE_DIR unitree/dds_wrapper/robots/g1/g1.h HINTS /usr/local/include /opt/unitree_robotics/include)
+  get_filename_component(UNITREE_PREFIX "${UNITREE_SDK_INCLUDE_DIR}" DIRECTORY)
+  find_library(UNITREE_SDK_LIBRARY NAMES unitree_sdk2 HINTS "${UNITREE_PREFIX}/lib")
+  find_library(DDSC_LIBRARY NAMES ddsc HINTS "${UNITREE_PREFIX}/lib")
+  find_library(DDSCXX_LIBRARY NAMES ddscxx HINTS "${UNITREE_PREFIX}/lib")
+  foreach(required_dependency UNITREE_SDK_INCLUDE_DIR UNITREE_SDK_LIBRARY DDSC_LIBRARY DDSCXX_LIBRARY)
+    if(NOT ${required_dependency})
+      message(FATAL_ERROR "${required_dependency} not found; install Unitree SDK2 or set CMAKE_PREFIX_PATH to its install prefix.")
+    endif()
+  endforeach()
+  file(GLOB_RECURSE ADD_SRC_LIST CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cpp")
+  add_library(${PROJECT_NAME}_lib ${ADD_SRC_LIST})
+  target_include_directories(${PROJECT_NAME}_lib PUBLIC include "${UNITREE_SDK_INCLUDE_DIR}" "${UNITREE_SDK_INCLUDE_DIR}/ddscxx" "${UNITREE_SDK_INCLUDE_DIR}/iceoryx/v2.0.2")
+  target_link_libraries(${PROJECT_NAME}_lib PUBLIC beyondmimic_runtime "${UNITREE_SDK_LIBRARY}" "${DDSC_LIBRARY}" "${DDSCXX_LIBRARY}" Boost::program_options spdlog::spdlog fmt::fmt Threads::Threads rt)
+  add_executable(g1_ctrl main.cpp)
+  target_link_libraries(g1_ctrl PRIVATE ${PROJECT_NAME}_lib)
+endif()

@@ -73,3 +73,7 @@ datasets
 
 # Mimic
 *.npz
+
+# Local deployment diagnostics and downloaded runtimes
+deploy/**/log/
+deploy/thirdparty/onnxruntime-linux-aarch64-*/
