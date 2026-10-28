@@ -4,6 +4,7 @@
 #include "FSM/State_RLBase.h"
 #include "State_Mimic.h"
 #include "State_BeyondMimic.h"
+#include "State_Velocity11k.h"
 #include <csignal>
 
 volatile std::sig_atomic_t stop_requested = 0;
@@ -34,8 +35,10 @@ int main(int argc, char** argv)
     // Load parameters
     auto vm = param::helper(argc, argv);
     const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
-    if(beyondmimic && vm["network"].as<std::string>().empty()) {
-        std::cerr << "BeyondMimic requires an explicit --network (lo for simulation).\n";
+    const bool velocity11k = param::config["FSM"]["_"]["Velocity"] &&
+        param::config["FSM"]["_"]["Velocity"]["type"].as<std::string>("")=="Velocity11k";
+    if((beyondmimic || velocity11k) && vm["network"].as<std::string>().empty()) {
+        std::cerr << "An explicit --network is required (lo for simulation).\n";
         return 1;
     }
 
@@ -63,6 +66,7 @@ int main(int argc, char** argv)
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else {
         std::cout << "And then press [R1 + X] to start controlling the robot.\n";
+        if(velocity11k) std::cout << "Frozen model_10999: finish FixStand, center the sticks, then enter Velocity; [L2 + B] -> damping.\n";
     }
 
     std::signal(SIGINT, request_stop);

@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_ROBOT_CONTROLLER "Build the Linux Unitree DDS controller" ON)
 option(BUILD_BEYONDMIMIC_OFFLINE "Build the hardware-free parity/simulation executable" ON)
+option(BUILD_VELOCITY11K_OFFLINE "Build hardware-free 11k observation/ONNX executables" ON)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(yaml-cpp REQUIRED)
 if(TARGET yaml-cpp::yaml-cpp)
@@ -26,6 +27,14 @@ target_link_libraries(beyondmimic_runtime INTERFACE Eigen3::Eigen ${YAML_TARGET}
 if(BUILD_BEYONDMIMIC_OFFLINE)
   add_executable(beyondmimic_offline ../../tools/beyondmimic_offline.cpp)
   target_link_libraries(beyondmimic_offline PRIVATE beyondmimic_runtime)
+endif()
+
+if(BUILD_VELOCITY11K_OFFLINE)
+  add_executable(velocity11k_core_offline ../../tools/velocity11k_core_offline.cpp)
+  target_include_directories(velocity11k_core_offline PRIVATE "${PROJECT_SOURCE_DIR}/../../include")
+  add_executable(velocity11k_offline ../../tools/velocity11k_offline.cpp)
+  target_include_directories(velocity11k_offline PRIVATE "${PROJECT_SOURCE_DIR}/../../include" "${ONNXRUNTIME_INCLUDE_DIR}")
+  target_link_libraries(velocity11k_offline PRIVATE "${ONNXRUNTIME_LIBRARY}")
 endif()
 
 if(BUILD_ROBOT_CONTROLLER)

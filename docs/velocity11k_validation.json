@@ -1,0 +1,205 @@
+{
+  "checkpoint_sha256": "8d4815ac2754bdf249d24e88c68ad1707679d09a2b2f56cb56916e86184178db",
+  "policy_sha256": "5823d91bdf7d97be986f4bf5ab28130ea45286cff6f9ca340b80d953090ccd48",
+  "contract_sha256": "c210f56a9ed10713a0b5ef3f97e34b1bd428dde52380b958c07f41913ec997f4",
+  "platform": "win32",
+  "offline_binary_sha256": "b341f2af75cc14fa2b1233d97785cfb7fefaa033f78268c592005858aae45326",
+  "production_core_sha256": "18a0b64c855449037bad997864a2a10560dbf3b6ea155a2a708be347c6424a4d",
+  "production_runner_sha256": "8228eb0675dd3704015d9344afd275757eb00dac9cb3fad806144bd04aef27dd",
+  "cpp_onnxruntime_version": "1.23.2",
+  "parity": {
+    "cases": 128,
+    "reset_cases": [
+      0,
+      32,
+      33,
+      64
+    ],
+    "max_abs_difference": {
+      "observation": 5.364418029785156e-07,
+      "action": 8.58306884765625e-06,
+      "target": 7.331371310037582e-08
+    },
+    "old_model_rejected": true,
+    "tolerance": {
+      "obs_atol_rtol": 2e-06,
+      "target_atol_rtol": 2e-06,
+      "action_atol_rtol": 2e-05
+    }
+  },
+  "hardware_tested": false,
+  "linux_dds_controller_built": false,
+  "rollout": {
+    "source": "docs/velocity11k_validation.rollout.csv",
+    "source_sha256": "4e395b3559b0ba82940bb96dc7dd9bc6c7509f01907d8593c493c13bf796a445",
+    "mujoco_version": "3.17.0",
+    "mjcf_sha256": "dadd6c702b1d093a7c336686e0cb49eb0708f3ecc78aee4148ff24b6017e2d7e",
+    "steps": 2100,
+    "fall_samples": 0,
+    "observation_parity_max_abs_difference": 1.1920928955078125e-07,
+    "segments": [
+      {
+        "command": [
+          0,
+          0,
+          0
+        ],
+        "steady_window_s": [
+          1.5,
+          4.0
+        ],
+        "actual_velocity_mean": [
+          -0.0037331556451231864,
+          0.0005935866561036384,
+          -0.04296146142217112
+        ],
+        "pitch_std_deg": 0.16409934412838686,
+        "roll_std_deg": 0.07861111742047529,
+        "shoulder_p10_p90_deg": {
+          "left": 0.10338855141298439,
+          "right": 0.10871819015973512
+        }
+      },
+      {
+        "command": [
+          0.4,
+          0,
+          0
+        ],
+        "steady_window_s": [
+          5.5,
+          12.0
+        ],
+        "actual_velocity_mean": [
+          0.36971894937904076,
+          0.04704736426690566,
+          -0.01815850473549568
+        ],
+        "pitch_std_deg": 0.779045730480128,
+        "roll_std_deg": 1.7320430096637878,
+        "shoulder_p10_p90_deg": {
+          "left": 0.7382244051784549,
+          "right": 0.43400158111588116
+        }
+      },
+      {
+        "command": [
+          0.6,
+          0,
+          0
+        ],
+        "steady_window_s": [
+          13.5,
+          20.0
+        ],
+        "actual_velocity_mean": [
+          0.5766792226371479,
+          0.04841508044920271,
+          -0.011545515211505769
+        ],
+        "pitch_std_deg": 0.8274976865486218,
+        "roll_std_deg": 2.06598882477617,
+        "shoulder_p10_p90_deg": {
+          "left": 0.7134260551736045,
+          "right": 0.8508144004923995
+        }
+      },
+      {
+        "command": [
+          0.8,
+          0,
+          0
+        ],
+        "steady_window_s": [
+          21.5,
+          26.0
+        ],
+        "actual_velocity_mean": [
+          0.7939458138847258,
+          0.05686064703503608,
+          0.015184651243194156
+        ],
+        "pitch_std_deg": 0.8167631612424295,
+        "roll_std_deg": 1.9700504101898535,
+        "shoulder_p10_p90_deg": {
+          "left": 0.6719254302744383,
+          "right": 1.0434163815584305
+        }
+      },
+      {
+        "command": [
+          0,
+          0.3,
+          0
+        ],
+        "steady_window_s": [
+          27.5,
+          32.0
+        ],
+        "actual_velocity_mean": [
+          0.014970291377641484,
+          0.22928410206347868,
+          -0.07297310746388114
+        ],
+        "pitch_std_deg": 0.32779373605453127,
+        "roll_std_deg": 1.600608267101937,
+        "shoulder_p10_p90_deg": {
+          "left": 0.8312705398648791,
+          "right": 0.9961776014683212
+        }
+      },
+      {
+        "command": [
+          0.4,
+          0,
+          0.2
+        ],
+        "steady_window_s": [
+          33.5,
+          38.0
+        ],
+        "actual_velocity_mean": [
+          0.38007154899718826,
+          0.0232579273694598,
+          -0.00467097626969886
+        ],
+        "pitch_std_deg": 1.0947605737908834,
+        "roll_std_deg": 2.161544592487917,
+        "shoulder_p10_p90_deg": {
+          "left": 1.2419451468189673,
+          "right": 0.7233420703580444
+        }
+      },
+      {
+        "command": [
+          0,
+          0,
+          0
+        ],
+        "steady_window_s": [
+          39.5,
+          42.0
+        ],
+        "actual_velocity_mean": [
+          -0.006958285212424219,
+          -0.0016876257678781835,
+          -0.028008162132750588
+        ],
+        "pitch_std_deg": 0.23494614637186917,
+        "roll_std_deg": 0.1152498447759061,
+        "shoulder_p10_p90_deg": {
+          "left": 0.08827111924463661,
+          "right": 0.05442106315865058
+        }
+      }
+    ],
+    "schedule": "Current snapshot/command enters history before inference, as on the real controller.",
+    "torque_model": "Explicit PD with training effort_limit_sim in MuJoCo; hardware uses SDK position PD and firmware torque limits."
+  },
+  "core_protection_checks": {
+    "zero_action_history_on_reset": true,
+    "joint_limit_saturation": true,
+    "invalid_quaternion_rejected": true
+  },
+  "compiler": "MSVC 14.44.35207 x64 /std:c++17 /O2"
+}

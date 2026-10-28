@@ -6,14 +6,7 @@ FSM:
       id: 2
     Velocity:
       id: 3
-      type: RLBase
-
-    Mimic_Dance_102: # uncomment to enable
-      id: 101
-      type: Mimic
-    Mimic_Gangnam_Style:
-      id: 102
-      type: Mimic
+      type: Velocity11k
 
   Passive:
     transitions: 
@@ -39,7 +32,7 @@ FSM:
     kp: [
       100., 100., 100., 150., 40., 40.,
       100., 100., 100., 150., 40., 40.,
-      200,200,200,
+      200,40,40,
       40,40,40,40,40,40,40,
       40,40,40,40,40,40,40,
     ]
@@ -47,8 +40,8 @@ FSM:
       2,2,2,4,2,2,
       2,2,2,4,2,2,
       5,5,5,
-      10,10,10,10,10,10,10,
-      10,10,10,10,10,10,10,
+      1,1,1,1,1,1,1,
+      1,1,1,1,1,1,1,
     ]
     ts: [0, 3]
     qs: [
@@ -56,18 +49,18 @@ FSM:
       [ -0.1, 0,0,0.3,-0.2,0,
         -0.1, 0,0,0.3,-0.2,0,
         0,0,0,
-        0, 0.25,0,0.97,0.15, 0,0,
-        0, -0.25,0,0.97,-0.15, 0,0
+        0.3, 0.25,0,0.97,0.15, 0,0,
+        0.3, -0.25,0,0.97,-0.15, 0,0
       ]
     ]
   Velocity:
     transitions: 
       Passive: LT + B.on_pressed
-      Mimic_Dance_102: LT(2s) + down.on_pressed
-      Mimic_Gangnam_Style: LT(2s) + left.on_pressed
-
-    policy_dir: config/policy/velocity
-    # policy_dir: ../../../logs/rsl_rl/unitree_g1_29dof_velocity
+    # Exact model path; Velocity11k never scans directories for a newer policy.
+    policy_dir: config/policy/velocity/11k
+    max_start_error: 0.25 # rad, inherited deployment startup guard (not a trained limit)
+    max_tilt: 1.0 # rad, original velocity controller's orientation guard
+    joint_log: true
   Mimic_Dance_102:
     transitions: 
       Passive: LT + B.on_pressed

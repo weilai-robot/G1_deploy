@@ -2,6 +2,7 @@
 # Build on the Linux deployment computer. Does not start robot control.
 set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+python3 "$repo_dir/tools/check_velocity11k_package.py"
 if [[ "$(uname -s)" != Linux ]]; then
   echo "Build the robot controller on Linux (the G1 onboard computer or a Linux PC)." >&2
   exit 1
@@ -25,11 +26,11 @@ if [[ ! -f "$runtime_dir/include/onnxruntime_cxx_api.h" || ! -f "$runtime_dir/li
   fi
   mv "$download_dir/onnxruntime-linux-$runtime_arch-$runtime_version" "$runtime_dir"
 fi
-python3 "$repo_dir/tools/check_beyondmimic_package.py"
 cmake -S "$repo_dir/deploy/robots/g1_29dof" -B "$repo_dir/deploy/robots/g1_29dof/build" \
   -DCMAKE_BUILD_TYPE=Release -DONNXRUNTIME_ROOT="$runtime_dir" \
   -DONNXRUNTIME_INCLUDE_DIR="$runtime_dir/include" \
   -DONNXRUNTIME_LIBRARY="$runtime_dir/lib/libonnxruntime.so.$runtime_version" \
   -DCMAKE_PREFIX_PATH="${UNITREE_SDK_PREFIX:-/usr/local}"
 cmake --build "$repo_dir/deploy/robots/g1_29dof/build" -j "${BUILD_JOBS:-2}"
-echo "Built controller; no robot commands were sent. See docs/G1_BeyondMimic_部署流程.md."
+python3 "$repo_dir/tools/check_velocity11k_runtime.py"
+echo "Built controller; no robot commands were sent. See docs/G1_11k_部署流程.md."
