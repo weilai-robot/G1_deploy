@@ -16,7 +16,7 @@
 #include <vector>
 
 namespace beyondmimic {
-constexpr int J = 29, B = 14, O = 160, RecordSize = 2 * J + 7 * B;
+constexpr int J = 29, B = 14, O = 160, P = 154, RecordSize = 2 * J + 7 * B;
 using Vec = Eigen::Vector3f;
 using Quat = Eigen::Quaternionf;
 using Joints = std::array<float, J>;
@@ -205,6 +205,27 @@ public:
         odometry_.reset(s, Vec(0,0,ref.positions[0].z()));
         last_action_.fill(0);
         last_target_ = s.q;
+    }
+    // [OMA] No odometry initialization/update or position/linear-velocity input.
+    void reset_proprioceptive(const Snapshot& s, const Reference& ref) {
+        validate_snapshot(s);
+        alignment_ = yaw(s.orientation)*yaw(ref.orientations[0]).conjugate();
+        last_action_.fill(0); last_target_=s.q;
+    }
+    std::array<float,P> observe_proprioceptive(const Snapshot& s,const Reference& ref) {
+        validate_snapshot(s);
+        const Quat torso_q=s.orientation*Quat(forward_kinematics(cfg_.torso,s.q).rotation());
+        const auto rot=(torso_q.conjugate()*alignment_*ref.orientations[7]).toRotationMatrix();
+        std::array<float,P> obs{};int k=0;
+        for(float v:ref.q) obs[k++]=v;
+        for(float v:ref.dq) obs[k++]=v;
+        for(int i=0;i<3;++i) for(int j=0;j<2;++j) obs[k++]=rot(i,j);
+        for(int i=0;i<3;++i) obs[k++]=s.angular_velocity[i];
+        for(int i=0;i<J;++i) obs[k++]=s.q[cfg_.sdk_indices[i]]-cfg_.default_q[i];
+        for(int i=0;i<J;++i) obs[k++]=s.dq[cfg_.sdk_indices[i]];
+        for(float v:last_action_) obs[k++]=v;
+        for(float v:obs) if(!std::isfinite(v)) throw std::runtime_error("Invalid proprioceptive observation");
+        return obs;
     }
     std::array<float,O> observe(const Snapshot& s, const Reference& ref, bool update_odometry=true,
                               const Vec* measured_position=nullptr, const Vec* measured_velocity_b=nullptr) {

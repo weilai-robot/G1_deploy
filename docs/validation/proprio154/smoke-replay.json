@@ -1,0 +1,32 @@
+{
+  "model_id": "proprio_smoke_exp20261031_001_model63_NOT_ACCEPTED",
+  "checkpoint_sha256": "91ea1aeb06bf2ba7935495e0a620687a6b378873ba457c7b3f83e8670a52488d",
+  "observation_dim": 154,
+  "actor_state_source": "C++ IMU/encoders/reference only; no truth position or linear velocity",
+  "leg_odometry_used": false,
+  "position_error_guard_used": false,
+  "target_limits": "live C++ unchanged",
+  "real_robot_tested": false,
+  "observation_max_abs_error": 2.1019972050798086e-07,
+  "observation_samples": 64,
+  "world_position_velocity_counterfactual": "passed",
+  "truth_packet_rejection": "passed",
+  "joint_range_violations": [
+    {
+      "joint": "waist_roll_joint",
+      "position_rad": -0.5444864328786814,
+      "lower_rad": -0.52,
+      "upper_rad": 0.52
+    }
+  ],
+  "planned_steps": 4100,
+  "completed_steps": 12,
+  "completed_seconds": 0.24,
+  "completed_protocol": false,
+  "termination_reason": "measured_joint_range_guard",
+  "limited_steps": 12,
+  "maximum_tilt_rad": 0.5877999001223584,
+  "minimum_pelvis_height_m": 0.6529404428173983,
+  "behavior_acceptance": false,
+  "scope": "deployment-interface physical replay; full speed/contact/video gates remain required"
+}

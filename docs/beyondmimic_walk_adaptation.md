@@ -1,5 +1,7 @@
 # BeyondMimic walking deployment adaptation
 
+Historical160-model adaptation record. The owner subsequently resumed training for deployable actor observations; current154 work and validation limits are documented in [beyondmimic_proprio154.md](beyondmimic_proprio154.md).
+
 Branch restriction: only yanni-G1-walk-beyondmimic; remote https://github.com/weilai-robot/G1_deploy.git. Starting remote commit8807bc2. The separately paused learning loop remains paused; this task edits deployment code only, no robot commands.
 
 Models: accepted baseline exp003/model3998 (checkpoint db5e3fe009373417717e71155be7be5d706d8ab937b538477de5f424d630608c,ONNX4259455e8a5f51d16dcf14b124550dd1914e2bbdba06befca16dbf86aee589b3) and retained contact candidate exp004/model5997(checkpoint fb60863e102c6d811639f8f78ec6b92374fe9b26ca85014ed68142ef822614ff,ONNX05f0fce1929c73198ceb6a731f9112caa6b64c336b81fc301e5dcbeb1e89454e). Exact control/normalization/gait tensors from archived models. Do not repurpose the old finite dance reference as an endless walk.

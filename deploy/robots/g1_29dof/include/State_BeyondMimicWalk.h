@@ -34,6 +34,7 @@ private:
     std::size_t initial_support_=0;
     float deadzone_=0.1f,minimum_speed_scale_=0.5f;
     float max_start_error_=0.25f,max_tilt_=0.85f,max_target_speed_=8.0f,max_anchor_error_=0.35f;
+    bool proprioceptive_=false;
     std::string model_id_;
     std::filesystem::path log_directory_;
     std::ofstream log_;

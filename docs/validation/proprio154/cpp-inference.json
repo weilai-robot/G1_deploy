@@ -1,0 +1,8 @@
+{
+  "checkpoint_sha256": "91ea1aeb06bf2ba7935495e0a620687a6b378873ba457c7b3f83e8670a52488d",
+  "samples": 64,
+  "cpp_onnx_actor_dim": 154,
+  "max_abs_action_error": 3.5762786865234375e-07,
+  "passed": true,
+  "synthetic": false
+}

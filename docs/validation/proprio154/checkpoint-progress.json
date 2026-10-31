@@ -1,0 +1,18 @@
+{
+  "first": {
+    "iter": 0,
+    "normalizer_count": 6144.0,
+    "optimizer_step_min": 20.0,
+    "optimizer_step_max": 20.0,
+    "all_model_tensors_finite": true
+  },
+  "last": {
+    "iter": 63,
+    "normalizer_count": 393216.0,
+    "optimizer_step_min": 1280.0,
+    "optimizer_step_max": 1280.0,
+    "all_model_tensors_finite": true
+  },
+  "changed_model_tensors": 25,
+  "passed": true
+}

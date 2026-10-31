@@ -40,8 +40,10 @@ void reference(const CyclicGait& gait) {
 }
 int main(int argc,char** argv) {
     try {
-        if(argc!=4) throw std::runtime_error("usage: probe gait.bin config.txt initial_support_index");
+        if(argc!=4 && argc!=5) throw std::runtime_error("usage: probe gait.bin config.txt initial_support_index");
         CyclicGait gait(argv[1]);gait.reset(std::stoul(argv[3]));Core core(fixture(argv[2]));
+        const bool proprio=argc==5 && std::string(argv[4])=="proprio";
+        if(argc==5 && !proprio) throw std::runtime_error("Invalid probe mode");
         Snapshot current;bool initialised=false;std::cout<<std::setprecision(9);
         std::string command;
         while(std::cin>>command) {
@@ -52,11 +54,16 @@ int main(int argc,char** argv) {
             } else if(command=="N") {gait.step();reference(gait);}
             else if(command=="T") reference(gait);
             else if(command=="I") {
-                current=snapshot(std::cin);core.reset(current,gait.reference());initialised=true;std::cout<<"OK"<<std::endl;
+                current=snapshot(std::cin);if(proprio) core.reset_proprioceptive(current,gait.reference()); else core.reset(current,gait.reference());initialised=true;std::cout<<"OK"<<std::endl;
             } else if(command=="O") {
                 if(!initialised) throw std::runtime_error("Observe before reset");
                 int truth;number(std::cin,truth);current=snapshot(std::cin);Vec p,v;
+                if(proprio && truth) throw std::runtime_error("Proprio actor rejects truth-state input");
                 if(truth) {for(int k=0;k<3;++k) number(std::cin,p[k]);for(int k=0;k<3;++k) number(std::cin,v[k]);}
+                if(proprio) {
+                    for(float x:core.observe_proprioceptive(current,gait.reference())) std::cout<<x<<" ";
+                    std::cout<<std::endl;continue;
+                }
                 auto obs=core.observe(current,gait.reference(),true,truth?&p:nullptr,truth?&v:nullptr);
                 for(float x:obs) std::cout<<x<<" ";
                 for(int k=0;k<3;++k) std::cout<<core.position()[k]<<" ";

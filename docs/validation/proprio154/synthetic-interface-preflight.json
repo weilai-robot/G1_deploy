@@ -1,0 +1,15 @@
+{
+  "model_id": "SYNTHETIC_INTERFACE_CHECK_ONLY",
+  "checkpoint_sha256": "fdb3be1a74f0b82355ed5728e05cc5d2bfe98911274be15f9c18bedc50b11899",
+  "observation_dim": 154,
+  "actor_state_source": "C++ IMU/encoders/reference only; no truth position or linear velocity",
+  "leg_odometry_used": false,
+  "position_error_guard_used": false,
+  "target_limits": "live C++ unchanged",
+  "real_robot_tested": false,
+  "observation_max_abs_error": 2.1019972050798086e-07,
+  "observation_samples": 64,
+  "world_position_velocity_counterfactual": "passed",
+  "truth_packet_rejection": "passed",
+  "scope": "interface only; no learned behavior claim"
+}

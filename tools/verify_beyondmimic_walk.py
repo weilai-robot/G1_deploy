@@ -32,8 +32,8 @@ def prepare(package,output):
 
 
 class Probe:
-    def __init__(self,binary,package,fixture,support):
-        self.p=subprocess.Popen([str(binary),str(package/'gait.bin'),str(fixture),str(support)],
+    def __init__(self,binary,package,fixture,support,proprio=False):
+        self.p=subprocess.Popen([str(binary),str(package/'gait.bin'),str(fixture),str(support)]+(['proprio'] if proprio else []),
                                 stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1)
     def send(self,command,values=()):
         self.p.stdin.write(command+' '+' '.join(map(str,values))+'\n');self.p.stdin.flush()

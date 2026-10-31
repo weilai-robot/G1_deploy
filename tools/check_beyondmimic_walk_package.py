@@ -37,6 +37,10 @@ def check(package):
             k=frame*156+100+4*body
             if abs(math.sqrt(sum(x*x for x in values[k:k+4]))-1)>.01:
                 raise ValueError('Invalid gait quaternion')
+    if manifest.get('observation_dim',160)==154:
+        c=manifest.get('actor_observation_contract',{})
+        if c.get('version')!='beyondmimic_actor_proprio_v1' or c.get('terms')!=['command','motion_anchor_ori_b','base_ang_vel','joint_pos','joint_vel','actions'] or c.get('term_dimensions')!=[58,6,3,29,29,29] or c.get('history_length')!=1 or c.get('dimension')!=154 or c.get('requires_position_estimate') is not False or c.get('requires_linear_velocity_estimate') is not False:
+            raise ValueError('Invalid estimator-free package contract')
     if not manifest['normalizer_embedded'] or manifest['real_robot_tested']:
         raise ValueError('Unexpected normalization or robot-acceptance claim')
     return {'model_id':manifest['model_id'],'integrity':'passed','frames':n,'support_frames':support,
@@ -47,7 +51,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('package',type=Path,nargs='?')
     a=p.parse_args()
     base=Path(__file__).resolve().parents[1]/'deploy/robots/g1_29dof/config/policy/beyondmimic'
-    for package in ([a.package] if a.package else [base/'walk_baseline',base/'walk_contact']):
+    for package in ([a.package] if a.package else sorted(path for path in base.glob('walk_*') if path.is_dir())):
         print(json.dumps(check(package)))
 
 

@@ -1,0 +1,23 @@
+{
+  "compiler": "g++ (Ubuntu 13.1.0-8ubuntu1~20.04.2) 13.1.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "compile_exit_code": 0,
+  "help_exit_code": 0,
+  "dds_execution": false,
+  "target": "Linux x86_64",
+  "sdk_commit": "8e1b927586712edd6a4c29d50dd52dff1e163439",
+  "probe_cmake_build_exit_code": 0,
+  "source_sha256": {
+    "deploy/include/beyondmimic/core.h": "dcb12f0662c558397ce73730439ffc0951a17463b102c5cb873aa02b9a37def2",
+    "deploy/include/beyondmimic/package.h": "8bf522eba4b5eda2ae2699bd7eecb1ed6d68d6524cf2cac9e5757b476a0097e4",
+    "deploy/robots/g1_29dof/include/State_BeyondMimicWalk.h": "deee794875489bf6cd44dc2f8a9649c17df652594a6ebbcfdde8bbf4c4001e50",
+    "deploy/robots/g1_29dof/src/State_BeyondMimicWalk.cpp": "b176bb8ae4ce719b5bcd2c06b620f7eeeb3e9159524edf1664c294f20ccd6ef1",
+    "deploy/tools/beyondmimic_walk_probe.cpp": "37eb937b709ca2bb1df3acc0a5837f184aed9aaedc5d4d82e8c30ed807050882",
+    "deploy/tools/beyondmimic_inference_probe.cpp": "307ed230ed1aece935306ecd963e4d8c4e0ad54a8adbbe205133db7ccc0289b2"
+  },
+  "binary_sha256": "e98e8757f5460c6a5d7f9de985090b99a980156a4b298ec805913f0e56d317ef",
+  "package_contract_tests": {
+    "actual154": "passed",
+    "legacy160": "passed",
+    "wrong_actor_terms_rejected": "Invalid estimator-free actor contract"
+  }
+}

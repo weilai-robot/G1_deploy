@@ -6,7 +6,8 @@ State_BeyondMimicWalk::State_BeyondMimicWalk(int state,std::string name):FSMStat
     auto cfg=param::config["FSM"][name];
     auto path=param::proj_dir/cfg["policy_dir"].as<std::string>();
     auto package=YAML::LoadFile((path/"deploy.yaml").string());
-    if(package["controller_mode"].as<std::string>()!="velocity_cyclic_v1" ||
+    proprioceptive_=package["controller_mode"].as<std::string>()=="velocity_cyclic_proprio_v1";
+    if((!proprioceptive_ && package["controller_mode"].as<std::string>()!="velocity_cyclic_v1") ||
        package["reference"].as<std::string>()!="gait.bin")
         throw std::runtime_error("Walking requires a native velocity-cyclic package");
     model_id_=package["model_id"].as<std::string>();
@@ -15,7 +16,7 @@ State_BeyondMimicWalk::State_BeyondMimicWalk(int state,std::string name):FSMStat
         throw std::runtime_error("Invalid walking model label");
     core_=std::make_unique<beyondmimic::Core>(beyondmimic::load_config(path/"deploy.yaml"));
     gait_=std::make_unique<beyondmimic::CyclicGait>((path/"gait.bin").string());
-    runner_=std::make_unique<beyondmimic::Runner>(path/"policy.onnx");
+    runner_=std::make_unique<beyondmimic::Runner>(path/"policy.onnx",proprioceptive_?beyondmimic::P:beyondmimic::O);
     initial_support_=cfg["initial_support_index"].as<std::size_t>(0);
     deadzone_=cfg["command_deadzone"].as<float>(0.1f);
     minimum_speed_scale_=cfg["minimum_speed_scale"].as<float>();
@@ -68,7 +69,8 @@ void State_BeyondMimicWalk::open_log() {
     for(const char* group:{"q_sdk","dq_sdk","action_policy","target_sdk"})
         for(int i=0;i<beyondmimic::J;++i) log_<<","<<group<<"_"<<i;
     log_<<"\n";
-    spdlog::info("BeyondMimicWalk model={} CSV={} (position/velocity are leg estimates, not ground truth)",model_id_,path.string());
+    spdlog::info("BeyondMimicWalk model={} CSV={} source={} (unavailable estimates are empty)",model_id_,path.string(),
+                 proprioceptive_?"IMU/joints only; no leg odometry or position guard":"leg odometry");
 }
 
 void State_BeyondMimicWalk::enter() {
@@ -86,7 +88,8 @@ void State_BeyondMimicWalk::enter() {
         float error=0;
         for(int i=0;i<beyondmimic::J;++i) error=std::max(error,std::abs(current.q[cfg.sdk_indices[i]]-ref.q[i]));
         if(error>max_start_error_) throw std::runtime_error("Initial posture mismatch; return to the model-specific FixStand");
-        core_->reset(current,ref);open_log();
+        if(proprioceptive_) core_->reset_proprioceptive(current,ref); else core_->reset(current,ref);
+        open_log();
         {
             std::lock_guard<std::mutex> lock(target_mutex_);
             targets_=current.q;last_result_=std::chrono::steady_clock::now();
@@ -118,10 +121,22 @@ void State_BeyondMimicWalk::policy_loop() {
             const auto current=snapshot();
             const float tilt=std::acos(std::clamp((current.orientation*beyondmimic::Vec::UnitZ()).z(),-1.0f,1.0f));
             if(tilt>max_tilt_) throw std::runtime_error("Pelvis tilt limit exceeded");
-            const auto ref=gait_->reference();const auto obs=core_->observe(current,ref);
-            const float anchor=beyondmimic::Vec(obs[58],obs[59],obs[60]).norm();
-            if(anchor>max_anchor_error_) throw std::runtime_error("Estimated torso/reference position error limit exceeded");
-            const auto action=runner_->act(obs);const auto target=core_->targets(action,current,max_target_speed_);
+            const auto ref=gait_->reference();float anchor=0; beyondmimic::Joints action;
+            if(proprioceptive_) {
+                // Cumulative-position guard is inapplicable without a position estimator.
+                // Retain measured posture/joint/timeout/action guards; global path accuracy
+                // is evaluated separately and is not claimed by this onboard controller.
+                const auto& c=core_->config();
+                for(int i=0;i<beyondmimic::J;++i) if(current.q[c.sdk_indices[i]]<c.lower[i] || current.q[c.sdk_indices[i]]>c.upper[i])
+                    throw std::runtime_error("Measured joint outside model range");
+                action=runner_->act(core_->observe_proprioceptive(current,ref));
+            } else {
+                const auto obs=core_->observe(current,ref);
+                anchor=beyondmimic::Vec(obs[58],obs[59],obs[60]).norm();
+                if(anchor>max_anchor_error_) throw std::runtime_error("Estimated torso/reference position error limit exceeded");
+                action=runner_->act(obs);
+            }
+            const auto target=core_->targets(action,current,max_target_speed_);
             if(!running_) break;
             {
                 std::lock_guard<std::mutex> lock(target_mutex_);
@@ -133,9 +148,13 @@ void State_BeyondMimicWalk::policy_loop() {
             for(float v:gait_->bounded()) log_<<","<<v;
             for(float v:gait_->effective()) log_<<","<<v;
             log_<<","<<gait_->position().x()<<","<<gait_->position().y()<<","<<gait_->yaw_angle();
-            for(int k=0;k<3;++k) log_<<","<<core_->position()[k];
-            for(int k=0;k<3;++k) log_<<","<<core_->velocity_b()[k];
-            log_<<","<<tilt<<","<<anchor<<","<<core_->clipped();
+            if(proprioceptive_) log_<<",,,,,,"; // Six unavailable estimates, never fabricated zeros.
+            else {
+                for(int k=0;k<3;++k) log_<<","<<core_->position()[k];
+                for(int k=0;k<3;++k) log_<<","<<core_->velocity_b()[k];
+            }
+            log_<<","<<tilt<<",";if(!proprioceptive_) log_<<anchor;
+            log_<<","<<core_->clipped();
             for(const auto& values:{current.q,current.dq,action,target}) for(float v:values) log_<<","<<v;
             log_<<"\n";
             if(!log_) throw std::runtime_error("Walking evidence log write failed");
