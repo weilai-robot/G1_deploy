@@ -1,0 +1,19 @@
+{
+  "checkpoint": "model_21100.pt",
+  "checkpoint_sha256": "604b7e1c91f5334e7907a0994ad0dcf235a513ae276fc7f850c948ef98891138",
+  "iteration": 21100,
+  "motion": "sub3_largebox_003_mj_w_obj.npz",
+  "motion_sha256": "76077a5035726aabe25b084de5414f3113646c43ac1bfa6ccc0742e46b1a4cea",
+  "urdf": "e:\\G1\\holosoma\\src\\holosoma\\holosoma\\data\\robots\\g1\\main_mesh_collision_halfspherehand.urdf",
+  "urdf_sha256": "c47bd7166ebf68190b4a93d5b2817b45ee145d221eb8794157db4d008de34afe",
+  "policy_sha256": "a2d164e4da0a8739e14ddcc4ce4765ec3c4d677508bb20135eab8dc42bb04339",
+  "reference_sha256": "c80261895eaf0f9523347525dc7a94945c4967fbd4812120b62a0f3b9c1c7f62",
+  "deploy_yaml_sha256": "6a81472c50ea5d4fe85e8f30cb1b645bf2f435caee5e4492f6e5e92c4316fe0e",
+  "observation_dim": 154,
+  "action_dim": 29,
+  "frames": 325,
+  "fps": 50.0,
+  "normalizer_epsilon": 0.01,
+  "onnx_parity_samples": 64,
+  "onnx_max_abs_error": 3.814697265625e-06
+}

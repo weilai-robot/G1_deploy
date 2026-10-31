@@ -26,6 +26,8 @@ target_link_libraries(beyondmimic_runtime INTERFACE Eigen3::Eigen ${YAML_TARGET}
 if(BUILD_BEYONDMIMIC_OFFLINE)
   add_executable(beyondmimic_offline ../../tools/beyondmimic_offline.cpp)
   target_link_libraries(beyondmimic_offline PRIVATE beyondmimic_runtime)
+  add_executable(holo_wbt_offline ../../tools/holo_wbt_offline.cpp)
+  target_link_libraries(holo_wbt_offline PRIVATE beyondmimic_runtime)
 endif()
 
 if(BUILD_ROBOT_CONTROLLER)

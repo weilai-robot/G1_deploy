@@ -4,6 +4,7 @@
 #include "FSM/State_RLBase.h"
 #include "State_Mimic.h"
 #include "State_BeyondMimic.h"
+#include "State_HoloWbt.h"
 #include <csignal>
 
 volatile std::sig_atomic_t stop_requested = 0;
@@ -34,8 +35,10 @@ int main(int argc, char** argv)
     // Load parameters
     auto vm = param::helper(argc, argv);
     const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
-    if(beyondmimic && vm["network"].as<std::string>().empty()) {
-        std::cerr << "BeyondMimic requires an explicit --network (lo for simulation).\n";
+    const bool holo_wbt = bool(param::config["FSM"]["_"]["HoloWbt"]);
+    const bool tracking = beyondmimic || holo_wbt;
+    if(tracking && vm["network"].as<std::string>().empty()) {
+        std::cerr << "Motion tracking states require an explicit --network (lo for simulation).\n";
         return 1;
     }
 
@@ -60,6 +63,9 @@ int main(int argc, char** argv)
     std::cout << "Press [L2 + Up] to enter FixStand mode.\n";
     if(beyondmimic) {
         std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
+        std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
+    } else if(holo_wbt) {
+        std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start HoloWbt.\n";
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else {
         std::cout << "And then press [R1 + X] to start controlling the robot.\n";
