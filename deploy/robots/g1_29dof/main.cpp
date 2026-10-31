@@ -4,6 +4,7 @@
 #include "FSM/State_RLBase.h"
 #include "State_Mimic.h"
 #include "State_BeyondMimic.h"
+#include "State_BeyondMimicWalk.h"
 #include <csignal>
 
 volatile std::sig_atomic_t stop_requested = 0;
@@ -11,7 +12,7 @@ void request_stop(int) { stop_requested = 1; }
 
 std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
 std::shared_ptr<LowState_t> FSMState::lowstate = nullptr;
-std::shared_ptr<Keyboard> FSMState::keyboard = std::make_shared<Keyboard>();
+std::shared_ptr<Keyboard> FSMState::keyboard = nullptr;
 
 void init_fsm_state()
 {
@@ -33,11 +34,15 @@ int main(int argc, char** argv)
 {
     // Load parameters
     auto vm = param::helper(argc, argv);
+    const bool walk = bool(param::config["FSM"]["_"]["BeyondMimicWalk"]);
     const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
-    if(beyondmimic && vm["network"].as<std::string>().empty()) {
+    if((beyondmimic || walk) && vm["network"].as<std::string>().empty()) {
         std::cerr << "BeyondMimic requires an explicit --network (lo for simulation).\n";
         return 1;
     }
+    // Parse --help before starting input threads. Walking uses only the remote;
+    // retain keyboard input for the existing non-walking configurations.
+    if(!walk) FSMState::keyboard = std::make_shared<Keyboard>();
 
     std::cout << " --- Unitree Robotics --- \n";
     std::cout << "     G1-29dof Controller \n";
@@ -58,7 +63,11 @@ int main(int argc, char** argv)
     fsm->start();
 
     std::cout << "Press [L2 + Up] to enter FixStand mode.\n";
-    if(beyondmimic) {
+    if(walk) {
+        std::cout << "Wait for model-specific FixStand; center sticks, then [R1 + X] -> BeyondMimicWalk.\n";
+        std::cout << "Left stick forward = speed; right stick = yaw while walking. Center = support hold; push = restart.\n";
+        std::cout << "Backward/lateral/in-place turns unsupported. [L2 + B] or Ctrl+C -> damping.\n";
+    } else if(beyondmimic) {
         std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else {

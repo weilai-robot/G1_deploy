@@ -1,0 +1,20 @@
+{
+  "compiler": "g++ (Ubuntu 13.1.0-8ubuntu1~20.04.2) 13.1.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "compile_exit_code": 0,
+  "help_exit_code": 0,
+  "dds_execution": false,
+  "target": "Linux x86_64",
+  "sdk_commit": "8e1b927586712edd6a4c29d50dd52dff1e163439",
+  "probe_cmake_build_exit_code": 0,
+  "help_stdout": "Unitree Controller:\n  -h [ --help ]         produce help message\n  -v [ --version ]      show version\n  --log                 record log file\n  -n [ --network ] arg  dds network interface\n  --domain arg (=0)     DDS domain (use a separate domain for simulation)\n  --config arg          explicit FSM configuration file\n\n",
+  "help_stderr": "",
+  "ldd_exit_code": 0,
+  "missing_shared_libraries": false,
+  "binary_sha256": "c36be5a903cc3fd2f1555bc53a320ed505919ae665215f23761793e3ada81534",
+  "source_hashes": {
+    "deploy/include/beyondmimic/cyclic.h": "5b6a4593ad808b225ccbec9fb82b47d7a48ff88bbfb023dae1d77e0357b5b538",
+    "deploy/robots/g1_29dof/src/State_BeyondMimicWalk.cpp": "01d67d649046bac656d7306762d7f3d9fa2e48106a9816ffe9c48c4a12fa6750",
+    "deploy/robots/g1_29dof/include/State_BeyondMimicWalk.h": "b189186459a1f9f81fe081eec511abaac51af61f60c4b50b066939192579d82a",
+    "deploy/robots/g1_29dof/main.cpp": "71c9de32ef0f3f9ea2f7b7997aa73b15a4622bde53146d0cf66c014154565a09"
+  }
+}

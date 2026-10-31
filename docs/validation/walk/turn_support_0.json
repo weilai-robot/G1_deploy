@@ -1,0 +1,118 @@
+{
+  "format": "beyondmimic_velocity_protocol_v1",
+  "kind": "Preregistered command replay; durations and speed fractions are test settings, not measured capability",
+  "nominal": true,
+  "seed": 1,
+  "initial_support_index": 0,
+  "stages": [
+    {
+      "name": "stand_initial",
+      "go": false,
+      "duration_s": 2,
+      "velocity": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "straight_sustained",
+      "go": true,
+      "duration_s": 20,
+      "velocity": [
+        0.6651223048489011,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "speed_half",
+      "go": true,
+      "duration_s": 8,
+      "velocity": [
+        0.33256115242445056,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "speed_restore",
+      "go": true,
+      "duration_s": 8,
+      "velocity": [
+        0.6651223048489011,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "turn_left",
+      "go": true,
+      "duration_s": 8,
+      "velocity": [
+        0.6651223048489011,
+        0,
+        0.2
+      ]
+    },
+    {
+      "name": "straight_exit",
+      "go": true,
+      "duration_s": 8,
+      "velocity": [
+        0.6651223048489011,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "turn_right",
+      "go": true,
+      "duration_s": 8,
+      "velocity": [
+        0.6651223048489011,
+        0,
+        -0.2
+      ]
+    },
+    {
+      "name": "stop_hold",
+      "go": false,
+      "duration_s": 6,
+      "stability_window_s": 2,
+      "velocity": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "restart_walk",
+      "go": true,
+      "duration_s": 8,
+      "velocity": [
+        0.6651223048489011,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "stop_final",
+      "go": false,
+      "duration_s": 6,
+      "stability_window_s": 2,
+      "velocity": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "reporting_settle_s": 1,
+  "abort_pelvis_height_m": 0.35,
+  "abort_tilt_rad": 0.85,
+  "abort_limits_source": "Existing configs/eval_walk_stop.json and 1_G1_deploy-main/tools/verify_beyondmimic.py",
+  "stop_response_policy": "No user hard latency deadline; report earliest stable suffix and terminal stability separately",
+  "behavior_acceptance": false,
+  "scope": "Forward speed and walking yaw turns; owner-reported foot scuff remains a separate unresolved quality defect"
+}

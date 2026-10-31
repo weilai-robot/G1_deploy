@@ -1,0 +1,50 @@
+{
+  "format": "beyondmimic_velocity_package_v1",
+  "model_id": "baseline_exp003_model3998",
+  "source_checkpoint": "model_3998.pt",
+  "checkpoint_sha256": "db5e3fe009373417717e71155be7be5d706d8ab937b538477de5f424d630608c",
+  "source_commit": "85bfd556c065deab6ec62f3a3c899113a0107b9b",
+  "trained_reference_npz_sha256": "c039dc5cacaf2483ad42d46a8fbe05f4048661899bde10529cea04eb6fb6fd47",
+  "policy_sha256": "4259455e8a5f51d16dcf14b124550dd1914e2bbdba06befca16dbf86aee589b3",
+  "gait_sha256": "346b7a0a960afa0bd5be43e318c5cbdb77c42bc7241c1710af14cf52f2640a14",
+  "deploy_yaml_sha256": "b8e5ee85a9375fd6d0d4578e69e95f0c9ce4b75ab5818e6f3613da189127d967",
+  "frames": 147,
+  "fps": 50.0,
+  "normalizer_embedded": true,
+  "normalizer_epsilon": 0.01,
+  "onnx_parity": {
+    "checkpoint": "model_3998.pt",
+    "checkpoint_sha256": "db5e3fe009373417717e71155be7be5d706d8ab937b538477de5f424d630608c",
+    "motion": "Compiled frozen command protocol, not raw clip",
+    "motion_sha256": "c039dc5cacaf2483ad42d46a8fbe05f4048661899bde10529cea04eb6fb6fd47",
+    "protocol_sha256": "2ae5e92b16af7eb8763831f4d43aeec13099bdcca7ea13eff2ddecfbf8a7d900",
+    "policy_sha256": "4259455e8a5f51d16dcf14b124550dd1914e2bbdba06befca16dbf86aee589b3",
+    "reference_sha256": "7ccbb1307acf4d918032d7bf0748e5c9c5e46195ecb1dba02acc03e3ef1d9d1e",
+    "urdf_sha256": "dbc8471004e9b0b85c27a4ebc1f0d90a727c1cf7ca9ef507b805596f2004d64b",
+    "deploy_yaml_sha256": "b0f447a006ac66ae2d807c11c1290ee90480e8275a4dc1d81318e1f945269e8d",
+    "frames": 4100,
+    "fps": 50,
+    "normalizer_epsilon": 0.01,
+    "onnx_parity_samples": 64,
+    "onnx_max_abs_error": 1.430511474609375e-06,
+    "compiled_reference_q_dq_matches_actual_csv_numerically": true,
+    "reference_q_dq_max_abs_error": 1.1920928955078125e-07,
+    "reference_comparison_tolerance": {
+      "rtol": 0.0002,
+      "atol": 0.0002,
+      "source": "Existing native runtime/exporter parity tolerance; no behavioral gate changed"
+    },
+    "actual_csv_sha256": "e50189ac9503f456815f0d2e7ebffff716f8a75b3f73b0b252becc6c512c2057",
+    "existing_exporter_sha256": "2954014e7d321f43693cfcfd920e5ba52aefd318e6e1daa96b3bd3c37da7de5b",
+    "real_robot_executed": false,
+    "live_joystick_FSM_ready": false,
+    "scope": "Existing package schema offline comparison fixture only; C++ estimator/limiter closed-loop pending"
+  },
+  "unsupported_commands": [
+    "backward",
+    "lateral",
+    "in_place_turn"
+  ],
+  "reference_scope": "Infinite cyclic gait, command-root integration and support-aware braking; not finite reference playback",
+  "real_robot_tested": false
+}

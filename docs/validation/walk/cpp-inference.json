@@ -1,0 +1,18 @@
+{
+  "baseline": {
+    "samples": 64,
+    "raw_observation_dim": 160,
+    "actions": 29,
+    "max_abs_action_error": 7.152557373046875e-07,
+    "runner_stdout": "64 samples\n",
+    "passed": true
+  },
+  "contact": {
+    "samples": 64,
+    "raw_observation_dim": 160,
+    "actions": 29,
+    "max_abs_action_error": 8.344650268554688e-07,
+    "runner_stdout": "64 samples\n",
+    "passed": true
+  }
+}
