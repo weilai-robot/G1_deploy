@@ -33,6 +33,14 @@ def main():
         raise ValueError('Native/package articulation mismatch')
     for key in ['default_joint_pos','kp','kd','action_scale','effort_limit']:
         np.testing.assert_array_equal(np.array(config[key],np.float32),native['control'][key].numpy())
+    target_contract=native.get("deployment_target_contract")
+    if target_contract:
+        if target_contract.get("version")!="shared_cpp_target_limits_v1" or target_contract.get("applied_to_native_action") is not True:
+            raise ValueError("Invalid trained deployment-target contract")
+        for key in ["joint_lower","joint_upper","kp","kd","effort_limit","default_joint_pos","action_scale"]:
+            np.testing.assert_array_equal(np.array(config[key],np.float32),np.array(target_contract[key],np.float32))
+        if target_contract["policy_dt"]!=native["policy_dt"]:raise ValueError("Target contract clock mismatch")
+        config["deployment_target_contract"]=target_contract
     a.output.mkdir(parents=True)
     torch.onnx.export(actor,torch.zeros(1,154),str(a.output/'policy.onnx'),
                       input_names=['obs'],output_names=['actions'],opset_version=17,dynamo=False)
@@ -70,9 +78,12 @@ def main():
         'unsupported_commands':['backward','lateral','in_place_turn'],'real_robot_tested':False,
         'deployment_behavior_accepted':False,'global_position_guard':False,
         'state_source':'IMU/encoders/reference; no position or linear velocity estimator'}
+    if target_contract:manifest["deployment_target_contract"]=target_contract
     (a.output/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')
     fsm=yaml.safe_load((cfgdir/'beyondmimic_walk.yaml').read_text(encoding='utf-8'))
     settings=fsm['FSM']['BeyondMimicWalk']
+    if target_contract and settings["max_target_speed"]!=target_contract["max_target_speed"]:
+        raise ValueError("FSM target rate differs from trained deployment contract")
     settings['policy_dir']=str(a.output.resolve().relative_to((root/'deploy/robots/g1_29dof').resolve())).replace('\\','/')
     settings.pop('max_anchor_error',None)
     ids=config['sdk_indices'];q=np.zeros(29);q[ids]=records[int(support[0]),:29]

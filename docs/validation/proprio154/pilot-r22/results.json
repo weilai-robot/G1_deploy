@@ -1,0 +1,347 @@
+{
+  "expId": "exp-20261031-002",
+  "taskId": "TASK_20261031_114",
+  "outcome": "未命中",
+  "scope": "Native estimator-free154 integration valid; full deployment-limited behavior gates failed",
+  "platformStatus": "5",
+  "platformEndTime": "2026-10-31 18:11:23",
+  "sourceCommit": "e827df7cbf8fdd2a584e5f5a8857a85c39ac47da",
+  "checkpointInspection": {
+    "taskId": "TASK_20261031_114",
+    "path": "model_1999.pt",
+    "sha256": "d886efd1c72a7d007020d135a25d4b9b4410b00411956e2e55156a2479ca8dc0",
+    "iteration": 1999,
+    "loaded": true,
+    "finite": true,
+    "optimizerStep": 40000,
+    "normalizerCount": 196608000,
+    "actor_shape": [
+      512,
+      154
+    ],
+    "critic_shape": [
+      512,
+      286
+    ],
+    "optimizer_step_max": 40000,
+    "first_optimizer_step_max": 20,
+    "first_normalizer_count": 98304,
+    "changed_model_tensors": 25,
+    "runtime_format": "beyondmimic_g1_velocity_proprio_runtime_v1",
+    "native_contract": {
+      "version": "beyondmimic_actor_proprio_v1",
+      "terms": [
+        "command",
+        "motion_anchor_ori_b",
+        "base_ang_vel",
+        "joint_pos",
+        "joint_vel",
+        "actions"
+      ],
+      "term_dimensions": [
+        58,
+        6,
+        3,
+        29,
+        29,
+        29
+      ],
+      "dimension": 154,
+      "history_length": 1,
+      "requires_position_estimate": false,
+      "requires_linear_velocity_estimate": false,
+      "native_active_terms": [
+        "command",
+        "motion_anchor_ori_b",
+        "base_ang_vel",
+        "joint_pos",
+        "joint_vel",
+        "actions"
+      ],
+      "native_actor_shape": [
+        154
+      ],
+      "native_critic_shape": [
+        286
+      ],
+      "passed": true,
+      "implementation_sha256": {
+        "utils/actor_observations.py": "9dec13fdef7c68117cbe4bac7e5616fcc266f3b4b18c0819d4cb9059241dc2ba",
+        "utils/runtime_policy.py": "2cb9a67120cd101c5b238a59e3708491e10050cf8ddc796ddcd47a8e20ff4b9c",
+        "tasks/tracking/config/g1/proprio_velocity_env_cfg.py": "4399f7a4d9b1530b0d6edb1e770001cb5f77cf47209d44aa287f5495e18118d0"
+      }
+    },
+    "reference_sha256": "c039dc5cacaf2483ad42d46a8fbe05f4048661899bde10529cea04eb6fb6fd47",
+    "all_reference_control_tensors_finite": true,
+    "runtime_actions_finite": true,
+    "reward_parameters": {
+      "motion_body_lin_vel": {
+        "weight": 1,
+        "std": 1
+      }
+    },
+    "command_limits": [
+      [
+        0,
+        0.6651223048489011
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        -0.2,
+        0.2
+      ]
+    ],
+    "training_command_curriculum": {
+      "speed_scale_range": [
+        0.5,
+        1
+      ],
+      "yaw_rate_range_radps": [
+        -0.2,
+        0.2
+      ],
+      "straight_go_probability": 0.5,
+      "go_duration_range_s": [
+        4,
+        12
+      ],
+      "stop_duration_range_s": [
+        2,
+        4
+      ],
+      "initial_go_probability": 0.5,
+      "episode_length_s": 20
+    }
+  },
+  "cppInference": {
+    "samples": 64,
+    "max_abs_action_error": 7.152557373046875e-7,
+    "passed": true,
+    "checkpoint_sha256": "d886efd1c72a7d007020d135a25d4b9b4410b00411956e2e55156a2479ca8dc0"
+  },
+  "runs": [
+    {
+      "mode": "shared_cpp",
+      "name": "forward_support_0",
+      "completed_steps": 1513,
+      "planned_steps": 2900,
+      "policy_dt": 0.02,
+      "completed_protocol": false,
+      "termination_reason": "measured_joint_range_guard",
+      "quantitative_pass": false,
+      "limited_steps": 1001,
+      "observation_max_abs_error": 2.9784870908544647e-7,
+      "reference_max_abs_error": 0.0000010035278315001506,
+      "failed_gates": {
+        "speed_half": [
+          "tilt",
+          "go_velocity",
+          "heading"
+        ]
+      },
+      "stop_response_seconds": {
+        "stand_initial": null
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/forward_support_0/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/forward_support_0/metrics.json"
+    },
+    {
+      "mode": "shared_cpp",
+      "name": "forward_support_2",
+      "completed_steps": 1383,
+      "planned_steps": 2900,
+      "policy_dt": 0.02,
+      "completed_protocol": false,
+      "termination_reason": "measured_joint_range_guard",
+      "quantitative_pass": false,
+      "limited_steps": 921,
+      "observation_max_abs_error": 2.9639586779112853e-7,
+      "reference_max_abs_error": 9.276000980662502e-7,
+      "failed_gates": {
+        "speed_half": [
+          "tilt",
+          "go_velocity",
+          "heading"
+        ]
+      },
+      "stop_response_seconds": {
+        "stand_initial": null
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/forward_support_2/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/forward_support_2/metrics.json"
+    },
+    {
+      "mode": "shared_cpp",
+      "name": "forward_support_4",
+      "completed_steps": 1311,
+      "planned_steps": 2900,
+      "policy_dt": 0.02,
+      "completed_protocol": false,
+      "termination_reason": "measured_joint_range_guard",
+      "quantitative_pass": false,
+      "limited_steps": 828,
+      "observation_max_abs_error": 2.7572146759149985e-7,
+      "reference_max_abs_error": 9.517211907450474e-7,
+      "failed_gates": {},
+      "stop_response_seconds": {
+        "stand_initial": null
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/forward_support_4/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/forward_support_4/metrics.json"
+    },
+    {
+      "mode": "shared_cpp",
+      "name": "supplementary_long_walk",
+      "completed_steps": 7100,
+      "planned_steps": 7100,
+      "policy_dt": 0.02,
+      "completed_protocol": true,
+      "termination_reason": null,
+      "quantitative_pass": false,
+      "limited_steps": 4745,
+      "observation_max_abs_error": 3.3895340042014444e-7,
+      "reference_max_abs_error": 1.2210235600385033e-7,
+      "failed_gates": {
+        "stop_hold": [
+          "tilt",
+          "heading"
+        ]
+      },
+      "stop_response_seconds": {
+        "stand_initial": null,
+        "stop_hold": 3.019999999999996,
+        "stop_final": 1.6200000000000045
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/supplementary_long_walk/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/supplementary_long_walk/metrics.json"
+    },
+    {
+      "mode": "shared_cpp",
+      "name": "turn_support_0",
+      "completed_steps": 1513,
+      "planned_steps": 4100,
+      "policy_dt": 0.02,
+      "completed_protocol": false,
+      "termination_reason": "measured_joint_range_guard",
+      "quantitative_pass": false,
+      "limited_steps": 1001,
+      "observation_max_abs_error": 2.9784870908544647e-7,
+      "reference_max_abs_error": 0.0000010035278315001506,
+      "failed_gates": {
+        "speed_half": [
+          "tilt",
+          "go_velocity",
+          "heading"
+        ]
+      },
+      "stop_response_seconds": {
+        "stand_initial": null
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/turn_support_0/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/turn_support_0/metrics.json"
+    },
+    {
+      "mode": "shared_cpp",
+      "name": "turn_support_2",
+      "completed_steps": 1383,
+      "planned_steps": 4100,
+      "policy_dt": 0.02,
+      "completed_protocol": false,
+      "termination_reason": "measured_joint_range_guard",
+      "quantitative_pass": false,
+      "limited_steps": 921,
+      "observation_max_abs_error": 2.9639586779112853e-7,
+      "reference_max_abs_error": 9.276000980662502e-7,
+      "failed_gates": {
+        "speed_half": [
+          "tilt",
+          "go_velocity",
+          "heading"
+        ]
+      },
+      "stop_response_seconds": {
+        "stand_initial": null
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/turn_support_2/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/turn_support_2/metrics.json"
+    },
+    {
+      "mode": "shared_cpp",
+      "name": "turn_support_4",
+      "completed_steps": 1311,
+      "planned_steps": 4100,
+      "policy_dt": 0.02,
+      "completed_protocol": false,
+      "termination_reason": "measured_joint_range_guard",
+      "quantitative_pass": false,
+      "limited_steps": 828,
+      "observation_max_abs_error": 2.7572146759149985e-7,
+      "reference_max_abs_error": 9.517211907450474e-7,
+      "failed_gates": {},
+      "stop_response_seconds": {
+        "stand_initial": null
+      },
+      "manifest": "evaluation/complete-results/shared_cpp/turn_support_4/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/shared_cpp/turn_support_4/metrics.json"
+    },
+    {
+      "mode": "raw_diagnostic",
+      "name": "turn_support_0",
+      "completed_steps": 4100,
+      "planned_steps": 4100,
+      "policy_dt": 0.02,
+      "completed_protocol": true,
+      "termination_reason": null,
+      "quantitative_pass": true,
+      "limited_steps": 0,
+      "observation_max_abs_error": 0,
+      "reference_max_abs_error": 0,
+      "failed_gates": {},
+      "stop_response_seconds": {
+        "stand_initial": null,
+        "stop_hold": 1.2000000000000028,
+        "stop_final": 1.2800000000000011
+      },
+      "manifest": "evaluation/complete-results/raw_diagnostic/turn_support_0/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/raw_diagnostic/turn_support_0/metrics.json"
+    },
+    {
+      "mode": "cpp_raw_targets",
+      "name": "turn_support_0",
+      "completed_steps": 4100,
+      "planned_steps": 4100,
+      "policy_dt": 0.02,
+      "completed_protocol": true,
+      "termination_reason": null,
+      "quantitative_pass": true,
+      "limited_steps": 2057,
+      "observation_max_abs_error": 4.973268671795011e-7,
+      "reference_max_abs_error": 0.0000019556152359712087,
+      "failed_gates": {},
+      "stop_response_seconds": {
+        "stand_initial": null,
+        "stop_hold": 1.2199999999999989,
+        "stop_final": 0.6000000000000085
+      },
+      "manifest": "evaluation/complete-results/cpp_raw_targets/turn_support_0/evaluation_manifest.json",
+      "metrics": "evaluation/complete-results/cpp_raw_targets/turn_support_0/metrics.json"
+    }
+  ],
+  "baselineReplacement": false,
+  "deployGateOpen": false,
+  "realRobotTested": false,
+  "findings": [
+    "Shared C++ observations/reference match independent native oracle within recorded errors. Actual full deployment-target runs fail variable-speed protocols; sustained nominal longwalk survives but STOP tilt/heading gates fail.",
+    "Same154weight + same C++ observable packets/guards, diagnostic raw targets completes entire82s command protocol and passes frozen quantitative gates. Raw targets are NEVER deployment acceptance. Original raw diagnostic joint states stay within physical bounds (guard-confound-check.json).",
+    "Train-time target construction was raw affine joint position; deployment Core::targets adds joint/rate/PD-envelope/reclamp. Next functional unit matches those exact existing target limits inside native action processing; keep onboard guards/old models/rewards/actor154."
+  ],
+  "caveats": [
+    "Single training seed; no impossibility/independent-seed gain claim.",
+    "Video naturalness/foot scuff not accepted; no new baseline promotion.",
+    "Measured joint preguard abort records terminal state in manifest; previous last completed CSV row is not falsely marked an already-terminated step. Missing terminal sensor row noted.",
+    "New installed OMA terminal expectedIteration field migrated from originally fixed2000update/source save contract; not pretended present at launch."
+  ]
+}

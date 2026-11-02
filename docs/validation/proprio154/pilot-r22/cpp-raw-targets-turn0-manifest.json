@@ -1,0 +1,286 @@
+{
+  "checkpoint": "/home/robot/F1_train/yanni/beyondmimic_deploy_probe/proprio-pilot/model_1999.pt",
+  "checkpoint_sha256": "d886efd1c72a7d007020d135a25d4b9b4410b00411956e2e55156a2479ca8dc0",
+  "protocol": {
+    "format": "beyondmimic_velocity_protocol_v1",
+    "kind": "Preregistered command replay; durations and speed fractions are test settings, not measured capability",
+    "nominal": true,
+    "seed": 1,
+    "initial_support_index": 0,
+    "stages": [
+      {
+        "name": "stand_initial",
+        "go": false,
+        "duration_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "straight_sustained",
+        "go": true,
+        "duration_s": 20,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "speed_half",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.33256115242445056,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "speed_restore",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "turn_left",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0.2
+        ]
+      },
+      {
+        "name": "straight_exit",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "turn_right",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          -0.2
+        ]
+      },
+      {
+        "name": "stop_hold",
+        "go": false,
+        "duration_s": 6,
+        "stability_window_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "restart_walk",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "stop_final",
+        "go": false,
+        "duration_s": 6,
+        "stability_window_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "reporting_settle_s": 1,
+    "abort_pelvis_height_m": 0.35,
+    "abort_tilt_rad": 0.85,
+    "abort_limits_source": "Existing configs/eval_walk_stop.json and 1_G1_deploy-main/tools/verify_beyondmimic.py",
+    "stop_response_policy": "No user hard latency deadline; report earliest stable suffix and terminal stability separately",
+    "behavior_acceptance": false,
+    "scope": "Forward speed and walking yaw turns; owner-reported foot scuff remains a separate unresolved quality defect"
+  },
+  "policy_dt": 0.02,
+  "physics_dt": 0.005,
+  "planned_steps": 4100,
+  "joint_names": [
+    "left_hip_pitch_joint",
+    "right_hip_pitch_joint",
+    "waist_yaw_joint",
+    "left_hip_roll_joint",
+    "right_hip_roll_joint",
+    "waist_roll_joint",
+    "left_hip_yaw_joint",
+    "right_hip_yaw_joint",
+    "waist_pitch_joint",
+    "left_knee_joint",
+    "right_knee_joint",
+    "left_shoulder_pitch_joint",
+    "right_shoulder_pitch_joint",
+    "left_ankle_pitch_joint",
+    "right_ankle_pitch_joint",
+    "left_shoulder_roll_joint",
+    "right_shoulder_roll_joint",
+    "left_ankle_roll_joint",
+    "right_ankle_roll_joint",
+    "left_shoulder_yaw_joint",
+    "right_shoulder_yaw_joint",
+    "left_elbow_joint",
+    "right_elbow_joint",
+    "left_wrist_roll_joint",
+    "right_wrist_roll_joint",
+    "left_wrist_pitch_joint",
+    "right_wrist_pitch_joint",
+    "left_wrist_yaw_joint",
+    "right_wrist_yaw_joint"
+  ],
+  "body_names": [
+    "pelvis",
+    "left_hip_pitch_link",
+    "right_hip_pitch_link",
+    "waist_yaw_link",
+    "left_hip_roll_link",
+    "right_hip_roll_link",
+    "waist_roll_link",
+    "left_hip_yaw_link",
+    "right_hip_yaw_link",
+    "torso_link",
+    "left_knee_link",
+    "right_knee_link",
+    "left_shoulder_pitch_link",
+    "right_shoulder_pitch_link",
+    "left_ankle_pitch_link",
+    "right_ankle_pitch_link",
+    "left_shoulder_roll_link",
+    "right_shoulder_roll_link",
+    "left_ankle_roll_link",
+    "right_ankle_roll_link",
+    "left_shoulder_yaw_link",
+    "right_shoulder_yaw_link",
+    "left_elbow_link",
+    "right_elbow_link",
+    "left_wrist_roll_link",
+    "right_wrist_roll_link",
+    "left_wrist_pitch_link",
+    "right_wrist_pitch_link",
+    "left_wrist_yaw_link",
+    "right_wrist_yaw_link"
+  ],
+  "observation_dim": 154,
+  "state_source": "Shared deployment C++ IMU/joints/reference; truth only for evaluation",
+  "reference_source": "Exact training motion tensors serialized with model",
+  "runtime_format": "beyondmimic_g1_velocity_proprio_runtime_v1",
+  "velocity_command_mode": true,
+  "supported_command_scope": "forward_speed_walking_turns_and_stable_stop_training",
+  "reference_sha256": "c039dc5cacaf2483ad42d46a8fbe05f4048661899bde10529cea04eb6fb6fd47",
+  "contact_force_threshold_source": 10.0,
+  "mjcf_sha256": "5d76cf92f00dd49d6eb9fae38d7d38e46886848b602ac691051e886c3bcccfb1",
+  "mujoco_version": "3.14.0",
+  "video_requested": false,
+  "completed_steps": 4100,
+  "completed_protocol": true,
+  "terminated": false,
+  "behavior_acceptance": false,
+  "automatic_reset_policy": "Initialize once; abort at first physical failure; no reset during any GO/STOP switch.",
+  "abort_limits_source": "1_G1_deploy-main/tools/verify_beyondmimic.py; explicit values frozen in protocol",
+  "target_source": "raw native targets with shared C++ observations/guards; diagnostic only",
+  "shared_deployment_cpp": true,
+  "observation_max_abs_error": 4.973268671795011e-07,
+  "reference_max_abs_error": 1.9556152359712087e-06,
+  "limited_steps": 2057,
+  "deployment_probe_sha256": "ffe14e30dde3451003e1d3d3d14ec3fa8c946af9edbadd5be3fafeed12aa2535",
+  "deployment_package": {
+    "format": "beyondmimic_velocity_package_v1",
+    "model_id": "proprio_pilot_exp20261031_002_model1999_NOT_ACCEPTED",
+    "source_checkpoint": "model_1999.pt",
+    "checkpoint_sha256": "d886efd1c72a7d007020d135a25d4b9b4410b00411956e2e55156a2479ca8dc0",
+    "source_commit": "e827df7cbf8fdd2a584e5f5a8857a85c39ac47da",
+    "trained_reference_npz_sha256": "c039dc5cacaf2483ad42d46a8fbe05f4048661899bde10529cea04eb6fb6fd47",
+    "policy_sha256": "498c895d8c7316a070ce47f0ff629737dce893ec10683f1633a8f995c3f0c89a",
+    "gait_sha256": "346b7a0a960afa0bd5be43e318c5cbdb77c42bc7241c1710af14cf52f2640a14",
+    "deploy_yaml_sha256": "f9a816b465a74da089b8056c879c8f781cb3164247ac275fc7b6f15a140f4271",
+    "frames": 147,
+    "fps": 50.0,
+    "observation_dim": 154,
+    "actor_observation_contract": {
+      "version": "beyondmimic_actor_proprio_v1",
+      "terms": [
+        "command",
+        "motion_anchor_ori_b",
+        "base_ang_vel",
+        "joint_pos",
+        "joint_vel",
+        "actions"
+      ],
+      "term_dimensions": [
+        58,
+        6,
+        3,
+        29,
+        29,
+        29
+      ],
+      "dimension": 154,
+      "history_length": 1,
+      "requires_position_estimate": false,
+      "requires_linear_velocity_estimate": false,
+      "native_active_terms": [
+        "command",
+        "motion_anchor_ori_b",
+        "base_ang_vel",
+        "joint_pos",
+        "joint_vel",
+        "actions"
+      ],
+      "native_actor_shape": [
+        154
+      ],
+      "native_critic_shape": [
+        286
+      ],
+      "passed": true,
+      "implementation_sha256": {
+        "utils/actor_observations.py": "9dec13fdef7c68117cbe4bac7e5616fcc266f3b4b18c0819d4cb9059241dc2ba",
+        "utils/runtime_policy.py": "2cb9a67120cd101c5b238a59e3708491e10050cf8ddc796ddcd47a8e20ff4b9c",
+        "tasks/tracking/config/g1/proprio_velocity_env_cfg.py": "4399f7a4d9b1530b0d6edb1e770001cb5f77cf47209d44aa287f5495e18118d0"
+      }
+    },
+    "normalizer_embedded": true,
+    "normalizer_epsilon": 0.01,
+    "onnx_parity": {
+      "samples": 64,
+      "max_abs_error": 7.152557373046875e-07
+    },
+    "unsupported_commands": [
+      "backward",
+      "lateral",
+      "in_place_turn"
+    ],
+    "real_robot_tested": false,
+    "deployment_behavior_accepted": false,
+    "global_position_guard": false,
+    "state_source": "IMU/encoders/reference; no position or linear velocity estimator"
+  },
+  "position_error_guard_used": false,
+  "leg_odometry_used": false,
+  "termination_reason": null
+}

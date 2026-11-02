@@ -1,0 +1,267 @@
+{
+  "scope": "Forward velocity/stop integration only; full joystick directions, naturalness review and independent training remain open",
+  "csv_sha256": "a50b523b09e6656d0de9bff14dfedc992d1842bf30d5832c6da8ffe9a4c7aacb",
+  "protocol": {
+    "format": "beyondmimic_velocity_protocol_v1",
+    "kind": "120s GO is an engineering test duration choice, not a measured capability or user deadline",
+    "nominal": true,
+    "seed": 1,
+    "initial_support_index": 0,
+    "stages": [
+      {
+        "name": "stand_initial",
+        "go": false,
+        "duration_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "straight_sustained",
+        "go": true,
+        "duration_s": 120,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "stop_hold",
+        "go": false,
+        "duration_s": 6,
+        "stability_window_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "restart_walk",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "stop_final",
+        "go": false,
+        "duration_s": 6,
+        "stability_window_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "reporting_settle_s": 1,
+    "abort_pelvis_height_m": 0.35,
+    "abort_tilt_rad": 0.85,
+    "abort_limits_source": "Existing configs/eval_walk_stop.json and 1_G1_deploy-main/tools/verify_beyondmimic.py",
+    "stop_response_policy": "No user hard latency deadline; report earliest stable suffix and terminal stability separately",
+    "behavior_acceptance": false,
+    "scope": "Supplementary baseline long-walk diagnostic, frozen after exp003 training and before next candidate; not retroactive preregistration for exp003"
+  },
+  "structural_checks": {
+    "row_count_matches_protocol": true,
+    "stage_schedule_matches_protocol": true,
+    "step_sequence_is_continuous": true,
+    "timestamps_match_policy_clock": true,
+    "completed_protocol": true,
+    "no_environment_termination": true,
+    "all_stages_recorded": true,
+    "no_reference_exhaustion_during_go": true,
+    "stand_initial_has_post_settle_samples": true,
+    "stand_initial_reference_hold_reached": true,
+    "straight_sustained_has_post_settle_samples": true,
+    "stop_hold_has_post_settle_samples": true,
+    "stop_hold_reference_hold_reached": true,
+    "restart_walk_has_post_settle_samples": true,
+    "stop_final_has_post_settle_samples": true,
+    "stop_final_reference_hold_reached": true,
+    "stand_initial_raw_command_matches_protocol": true,
+    "straight_sustained_raw_command_matches_protocol": true,
+    "stop_hold_raw_command_matches_protocol": true,
+    "restart_walk_raw_command_matches_protocol": true,
+    "stop_final_raw_command_matches_protocol": true,
+    "no_silent_command_saturation": true
+  },
+  "stage_metrics": {
+    "stand_initial": {
+      "recorded_duration_s": 2.0,
+      "tail_samples": 50,
+      "actual_speed_mean_mps": 0.017569104714335076,
+      "actual_speed_max_mps": 0.03959107272190021,
+      "actual_planar_drift_m": 0.010132873200401979,
+      "actual_planar_path_m": 0.07867163255975997,
+      "tilt_max_rad": 0.12494703803971707,
+      "both_contact_fraction": 1.0,
+      "contact_foot_speed_max_mps": 0.0021239514782230027,
+      "reference_rate_tail_max": 0.0,
+      "reference_hold_response_s": 0.0,
+      "stable_stop_response_s": null,
+      "response_definition": "Earliest suffix satisfying all frozen stop gates and reference hold through the stage end, with the required minimum stable-hold duration. Null means not observed; no hard latency threshold.",
+      "reference_velocity_tracking_rmse_mps": 0.05132303640791147,
+      "user_command_velocity_rmse_mps": 0.05154825561048048,
+      "heading_error_max_rad": 0.1159696434433973,
+      "yaw_observed_delta_rad": 0.09341751655883708,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 1.98,
+      "yaw_mean_rate_error_radps": 0.04718056391860458,
+      "yaw_rate_instantaneous_rmse_radps": 0.4148852337640749,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 0,
+      "reference_cycle_count_end": 0
+    },
+    "straight_sustained": {
+      "recorded_duration_s": 120.0,
+      "tail_samples": 5950,
+      "actual_speed_mean_mps": 0.603852332609734,
+      "actual_speed_max_mps": 1.0476073587956456,
+      "actual_planar_drift_m": 68.95497035420088,
+      "actual_planar_path_m": 72.10256576405368,
+      "tilt_max_rad": 0.22068631019584128,
+      "both_contact_fraction": 0.43831932773109245,
+      "contact_foot_speed_max_mps": 1.6832796359326059,
+      "reference_rate_tail_max": 1.0,
+      "reference_velocity_tracking_rmse_mps": 0.2298991482943063,
+      "user_command_velocity_rmse_mps": 0.2646271281966653,
+      "heading_error_max_rad": 0.16416679894482614,
+      "yaw_observed_delta_rad": -0.18614964857753305,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 119.98,
+      "yaw_mean_rate_error_radps": 0.0015515056557554013,
+      "yaw_rate_instantaneous_rmse_radps": 0.5448432697662472,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 0,
+      "reference_cycle_count_end": 40
+    },
+    "stop_hold": {
+      "recorded_duration_s": 6.0,
+      "tail_samples": 100,
+      "actual_speed_mean_mps": 0.005629967470016022,
+      "actual_speed_max_mps": 0.017527758168007685,
+      "actual_planar_drift_m": 0.006125027690261222,
+      "actual_planar_path_m": 0.9308450576200563,
+      "tilt_max_rad": 0.3990953111226674,
+      "both_contact_fraction": 1.0,
+      "contact_foot_speed_max_mps": 0.0019915883923832395,
+      "reference_rate_tail_max": 0.0,
+      "reference_hold_response_s": 0.980000000000004,
+      "stable_stop_response_s": 3.019999999999996,
+      "response_definition": "Earliest suffix satisfying all frozen stop gates and reference hold through the stage end, with the required minimum stable-hold duration. Null means not observed; no hard latency threshold.",
+      "reference_velocity_tracking_rmse_mps": 0.1613058238708958,
+      "user_command_velocity_rmse_mps": 0.25408636810716995,
+      "heading_error_max_rad": 0.4802398160137412,
+      "yaw_observed_delta_rad": 0.06045580965166866,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 5.980000000000004,
+      "yaw_mean_rate_error_radps": 0.010109667165830873,
+      "yaw_rate_instantaneous_rmse_radps": 0.47607691113989414,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 40,
+      "reference_cycle_count_end": 41
+    },
+    "restart_walk": {
+      "recorded_duration_s": 8.0,
+      "tail_samples": 350,
+      "actual_speed_mean_mps": 0.6040331661676214,
+      "actual_speed_max_mps": 1.040960331461813,
+      "actual_planar_drift_m": 4.0466894768808,
+      "actual_planar_path_m": 4.534857212073288,
+      "tilt_max_rad": 0.21701966289542268,
+      "both_contact_fraction": 0.44571428571428573,
+      "contact_foot_speed_max_mps": 1.3936454028664058,
+      "reference_rate_tail_max": 1.0,
+      "reference_velocity_tracking_rmse_mps": 0.23950244001388668,
+      "user_command_velocity_rmse_mps": 0.2952255736339349,
+      "heading_error_max_rad": 0.17917506361613864,
+      "yaw_observed_delta_rad": 0.1752115630346862,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 7.97999999999999,
+      "yaw_mean_rate_error_radps": 0.02195633621988552,
+      "yaw_rate_instantaneous_rmse_radps": 0.5220793761791844,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 41,
+      "reference_cycle_count_end": 43
+    },
+    "stop_final": {
+      "recorded_duration_s": 6.0,
+      "tail_samples": 100,
+      "actual_speed_mean_mps": 0.001415062036380223,
+      "actual_speed_max_mps": 0.0028527448106858617,
+      "actual_planar_drift_m": 0.0027120522321207458,
+      "actual_planar_path_m": 0.4975157950415437,
+      "tilt_max_rad": 0.23861907528759888,
+      "both_contact_fraction": 1.0,
+      "contact_foot_speed_max_mps": 0.0021154644552071142,
+      "reference_rate_tail_max": 0.0,
+      "reference_hold_response_s": 0.46000000000000796,
+      "stable_stop_response_s": 1.6200000000000045,
+      "response_definition": "Earliest suffix satisfying all frozen stop gates and reference hold through the stage end, with the required minimum stable-hold duration. Null means not observed; no hard latency threshold.",
+      "reference_velocity_tracking_rmse_mps": 0.11311219328808238,
+      "user_command_velocity_rmse_mps": 0.18848657893171958,
+      "heading_error_max_rad": 0.20659788586272063,
+      "yaw_observed_delta_rad": -0.21815034132614147,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 5.97999999999999,
+      "yaw_mean_rate_error_radps": 0.03647999018831803,
+      "yaw_rate_instantaneous_rmse_radps": 0.3554941206528314,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 43,
+      "reference_cycle_count_end": 43
+    }
+  },
+  "frozen_gates_supplied": true,
+  "quantitative_gate_checks": {
+    "stand_initial": {
+      "tilt": true,
+      "stop_speed": true,
+      "stop_drift": true,
+      "both_contact": true,
+      "contact_slip": true,
+      "heading": true
+    },
+    "straight_sustained": {
+      "tilt": true,
+      "go_velocity": true,
+      "go_progress": true,
+      "heading": true
+    },
+    "stop_hold": {
+      "tilt": false,
+      "stop_speed": true,
+      "stop_drift": true,
+      "both_contact": true,
+      "contact_slip": true,
+      "heading": false
+    },
+    "restart_walk": {
+      "tilt": true,
+      "go_velocity": true,
+      "go_progress": true,
+      "heading": true
+    },
+    "stop_final": {
+      "tilt": true,
+      "stop_speed": true,
+      "stop_drift": true,
+      "both_contact": true,
+      "contact_slip": true,
+      "heading": true
+    }
+  },
+  "quantitative_pass": false,
+  "video_review_pass": false,
+  "run_acceptance": false,
+  "velocity_target_source": "Raw user command, masked only by explicitly logged walking-mode enable; never the braked reference",
+  "main_joystick_goal_accepted": false,
+  "gates_sha256": "d45719b529eff110a24535edd2c42787152b860ddff661972073b2f28f40543f"
+}

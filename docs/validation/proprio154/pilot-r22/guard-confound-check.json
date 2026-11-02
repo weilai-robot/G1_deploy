@@ -1,0 +1,16 @@
+{
+  "shared_cpp": {
+    "rows": 1513,
+    "first_recorded_joint_range_violation_s": null,
+    "violating_joints": [],
+    "largest_limit_excess_rad": -0.001673719820359687,
+    "limiter_steps": 1001
+  },
+  "raw_diagnostic": {
+    "rows": 4100,
+    "first_recorded_joint_range_violation_s": null,
+    "violating_joints": [],
+    "largest_limit_excess_rad": -0.07592399118248161,
+    "limiter_steps": 0
+  }
+}

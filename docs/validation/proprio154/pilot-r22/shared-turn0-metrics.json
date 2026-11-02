@@ -1,0 +1,266 @@
+{
+  "scope": "Forward and commanded walking-turn integration; lateral/backward/in-place motion, owner-reported gait defects, full naturalness and independent training remain open",
+  "csv_sha256": "17cec0932721e5fed72c2085936fb121b46241e598ba944c824361078fe96f0e",
+  "protocol": {
+    "format": "beyondmimic_velocity_protocol_v1",
+    "kind": "Preregistered command replay; durations and speed fractions are test settings, not measured capability",
+    "nominal": true,
+    "seed": 1,
+    "initial_support_index": 0,
+    "stages": [
+      {
+        "name": "stand_initial",
+        "go": false,
+        "duration_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "straight_sustained",
+        "go": true,
+        "duration_s": 20,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "speed_half",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.33256115242445056,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "speed_restore",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "turn_left",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0.2
+        ]
+      },
+      {
+        "name": "straight_exit",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "turn_right",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          -0.2
+        ]
+      },
+      {
+        "name": "stop_hold",
+        "go": false,
+        "duration_s": 6,
+        "stability_window_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "restart_walk",
+        "go": true,
+        "duration_s": 8,
+        "velocity": [
+          0.6651223048489011,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "stop_final",
+        "go": false,
+        "duration_s": 6,
+        "stability_window_s": 2,
+        "velocity": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "reporting_settle_s": 1,
+    "abort_pelvis_height_m": 0.35,
+    "abort_tilt_rad": 0.85,
+    "abort_limits_source": "Existing configs/eval_walk_stop.json and 1_G1_deploy-main/tools/verify_beyondmimic.py",
+    "stop_response_policy": "No user hard latency deadline; report earliest stable suffix and terminal stability separately",
+    "behavior_acceptance": false,
+    "scope": "Forward speed and walking yaw turns; owner-reported foot scuff remains a separate unresolved quality defect"
+  },
+  "structural_checks": {
+    "row_count_matches_protocol": false,
+    "stage_schedule_matches_protocol": false,
+    "step_sequence_is_continuous": true,
+    "timestamps_match_policy_clock": true,
+    "completed_protocol": false,
+    "no_environment_termination": true,
+    "all_stages_recorded": false,
+    "no_reference_exhaustion_during_go": true,
+    "stand_initial_has_post_settle_samples": true,
+    "stand_initial_reference_hold_reached": true,
+    "straight_sustained_has_post_settle_samples": true,
+    "speed_half_has_post_settle_samples": true,
+    "speed_restore_has_post_settle_samples": false,
+    "stand_initial_raw_command_matches_protocol": true,
+    "straight_sustained_raw_command_matches_protocol": true,
+    "speed_half_raw_command_matches_protocol": true,
+    "speed_restore_raw_command_matches_protocol": true,
+    "no_silent_command_saturation": true
+  },
+  "stage_metrics": {
+    "stand_initial": {
+      "recorded_duration_s": 2.0,
+      "tail_samples": 50,
+      "actual_speed_mean_mps": 0.017569104714335076,
+      "actual_speed_max_mps": 0.03959107272190021,
+      "actual_planar_drift_m": 0.010132873200401979,
+      "actual_planar_path_m": 0.07867163255975997,
+      "tilt_max_rad": 0.12494703803971707,
+      "both_contact_fraction": 1.0,
+      "contact_foot_speed_max_mps": 0.0021239514782230027,
+      "reference_rate_tail_max": 0.0,
+      "actual_yaw_rate_tail_max_radps": 0.03786593578347369,
+      "reference_hold_response_s": 0.0,
+      "stable_stop_response_s": null,
+      "response_definition": "Earliest suffix satisfying all frozen stop gates and reference hold through the stage end, with the required minimum stable-hold duration. Null means not observed; no hard latency threshold.",
+      "reference_velocity_tracking_rmse_mps": 0.05132303640791147,
+      "user_command_velocity_rmse_mps": 0.05154825561048048,
+      "heading_error_max_rad": 0.1159696434433973,
+      "yaw_observed_delta_rad": 0.09341751655883708,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 1.98,
+      "yaw_mean_rate_error_radps": 0.04718056391860458,
+      "yaw_rate_instantaneous_rmse_radps": 0.4148852337640749,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 0,
+      "reference_cycle_count_end": 0
+    },
+    "straight_sustained": {
+      "recorded_duration_s": 20.0,
+      "tail_samples": 950,
+      "actual_speed_mean_mps": 0.6037699583971026,
+      "actual_speed_max_mps": 1.0462205985112794,
+      "actual_planar_drift_m": 10.999316205419548,
+      "actual_planar_path_m": 11.845465292063682,
+      "tilt_max_rad": 0.21722800020520255,
+      "both_contact_fraction": 0.4442105263157895,
+      "contact_foot_speed_max_mps": 1.4593399508263103,
+      "reference_rate_tail_max": 1.0,
+      "actual_yaw_rate_tail_max_radps": 1.579915571469336,
+      "reference_velocity_tracking_rmse_mps": 0.22718365788846626,
+      "user_command_velocity_rmse_mps": 0.27042507408221067,
+      "heading_error_max_rad": 0.16416679894482614,
+      "yaw_observed_delta_rad": -0.14807949509458457,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 19.98,
+      "yaw_mean_rate_error_radps": 0.007411386140870098,
+      "yaw_rate_instantaneous_rmse_radps": 0.5440004031226491,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 0,
+      "reference_cycle_count_end": 6
+    },
+    "speed_half": {
+      "recorded_duration_s": 8.0,
+      "tail_samples": 350,
+      "actual_speed_mean_mps": 0.386549475507025,
+      "actual_speed_max_mps": 1.125779091473702,
+      "actual_planar_drift_m": 2.3418190263483654,
+      "actual_planar_path_m": 3.1825402829983,
+      "tilt_max_rad": 0.4256226233784157,
+      "both_contact_fraction": 0.4,
+      "contact_foot_speed_max_mps": 1.0714482685710214,
+      "reference_rate_tail_max": 0.5,
+      "actual_yaw_rate_tail_max_radps": 3.3149859820800067,
+      "reference_velocity_tracking_rmse_mps": 0.28428987899369995,
+      "user_command_velocity_rmse_mps": 0.3056174714877872,
+      "heading_error_max_rad": 0.5454621159484913,
+      "yaw_observed_delta_rad": 0.502094988570148,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 7.98,
+      "yaw_mean_rate_error_radps": 0.06291917150001855,
+      "yaw_rate_instantaneous_rmse_radps": 0.6970810131256026,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 6,
+      "reference_cycle_count_end": 8
+    },
+    "speed_restore": {
+      "recorded_duration_s": 0.26,
+      "tail_samples": 0,
+      "status": "No post-settle data; the run cannot pass",
+      "user_command_velocity_rmse_mps": 1.088413947305863,
+      "heading_error_max_rad": 0.6027961987072349,
+      "yaw_observed_delta_rad": 0.15617027750164736,
+      "yaw_requested_delta_rad": 0.0,
+      "yaw_measured_span_s": 0.240000000000002,
+      "yaw_mean_rate_error_radps": 0.6507094895901919,
+      "yaw_rate_instantaneous_rmse_radps": 1.9571346916225603,
+      "turn_direction_correct": false,
+      "reference_cycle_count_start": 8,
+      "reference_cycle_count_end": 8
+    }
+  },
+  "frozen_gates_supplied": true,
+  "quantitative_gate_checks": {
+    "stand_initial": {
+      "tilt": true,
+      "stop_speed": true,
+      "stop_drift": true,
+      "both_contact": true,
+      "contact_slip": true,
+      "stop_yaw_rate": true,
+      "heading": true
+    },
+    "straight_sustained": {
+      "tilt": true,
+      "go_velocity": true,
+      "go_progress": true,
+      "heading": true,
+      "go_yaw_mean_rate": true
+    },
+    "speed_half": {
+      "tilt": false,
+      "go_velocity": false,
+      "go_progress": true,
+      "heading": false,
+      "go_yaw_mean_rate": true
+    }
+  },
+  "quantitative_pass": false,
+  "video_review_pass": false,
+  "run_acceptance": false,
+  "velocity_target_source": "Raw user command, masked only by explicitly logged walking-mode enable; never the braked reference",
+  "main_joystick_goal_accepted": false,
+  "gates_sha256": "91f69ad9a5f4a6353f35afb8a0f4d5594f9e75e7f935f118c9a668f9d0531654"
+}
