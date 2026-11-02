@@ -1,0 +1,43 @@
+{
+  "onnx_tolerance": "rtol=2e-4, atol=2e-4",
+  "variants": {
+    "r41": {
+      "checkpoint_sha256": "2e468ff18b5d34797530182c1e87f0e09441ee11aadd24661fff10c1042f6b51",
+      "onnx_vs_pytorch_max_abs_error": 1.1444091796875e-05,
+      "onnx_vs_pytorch_samples": 64,
+      "python_core_standing_clocks_zero": true,
+      "python_core_walked_ticks": 100,
+      "python_core_executed": true,
+      "cpp_parity": {
+        "executed": false,
+        "reason": "no --offline-binary provided; build on Linux and rerun"
+      }
+    },
+    "r42": {
+      "checkpoint_sha256": "4933371459e0e26ec74833c4161be6774201c7158d6810334578e89bec37cb04",
+      "onnx_vs_pytorch_max_abs_error": 9.5367431640625e-06,
+      "onnx_vs_pytorch_samples": 64,
+      "python_core_standing_clocks_zero": true,
+      "python_core_walked_ticks": 100,
+      "python_core_executed": true,
+      "cpp_parity": {
+        "executed": false,
+        "reason": "no --offline-binary provided; build on Linux and rerun"
+      }
+    }
+  },
+  "real_data_anchor": {
+    "rows": 16000,
+    "max_advance_error": 3.099441528431335e-08,
+    "max_offset_error": 2.9802322387695312e-08,
+    "verdict": "phase dynamics match dt*cmd3 advance and 0.5 offset"
+  },
+  "negative_tests": {
+    "executed": false,
+    "reason": "no --offline-binary"
+  },
+  "not_covered": [
+    "closed-loop simulation of the C++ core (plan section 10.3)",
+    "hardware results (pelvis vs torso IMU source, wrist zero calibration)"
+  ]
+}

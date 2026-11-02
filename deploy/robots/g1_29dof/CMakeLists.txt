@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_ROBOT_CONTROLLER "Build the Linux Unitree DDS controller" ON)
 option(BUILD_BEYONDMIMIC_OFFLINE "Build the hardware-free parity/simulation executable" ON)
+option(BUILD_HUGWBC_OFFLINE "Build the HugWBC hardware-free replay/verification executable" ON)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(yaml-cpp REQUIRED)
 if(TARGET yaml-cpp::yaml-cpp)
@@ -26,6 +27,17 @@ target_link_libraries(beyondmimic_runtime INTERFACE Eigen3::Eigen ${YAML_TARGET}
 if(BUILD_BEYONDMIMIC_OFFLINE)
   add_executable(beyondmimic_offline ../../tools/beyondmimic_offline.cpp)
   target_link_libraries(beyondmimic_offline PRIVATE beyondmimic_runtime)
+endif()
+
+# HugWBC runtime: same include tree and dependencies, separate target so the
+# BeyondMimic build stays untouched.
+add_library(hugwbc_runtime INTERFACE)
+target_include_directories(hugwbc_runtime INTERFACE "${PROJECT_SOURCE_DIR}/../../include" "${ONNXRUNTIME_INCLUDE_DIR}")
+target_link_libraries(hugwbc_runtime INTERFACE Eigen3::Eigen ${YAML_TARGET} "${ONNXRUNTIME_LIBRARY}")
+
+if(BUILD_HUGWBC_OFFLINE)
+  add_executable(hugwbc_offline ../../tools/hugwbc_offline.cpp)
+  target_link_libraries(hugwbc_offline PRIVATE hugwbc_runtime)
 endif()
 
 if(BUILD_ROBOT_CONTROLLER)

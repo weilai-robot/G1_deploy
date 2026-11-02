@@ -1,0 +1,77 @@
+# HugWBC R42 (fixed-reference adaptation candidate, model_13200_g1r42.pt) - G1 29DOF.
+# Selected explicitly with the executable:
+#   g1_ctrl --config config/hugwbc_r41.yaml --network <iface> [--domain N]
+# Fixed forward-walk test profile only; stand/turn/start-stop extensions are
+# NOT implemented or validated here (see docs/G1_HugWBC_部署流程.md).
+FSM:
+  _: # enabled fsms
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    HugWBC:
+      id: 301
+      type: HugWBC
+  Passive:
+    transitions:
+      FixStand: LT + up.on_pressed
+    mode: [
+      1,1,1,1,1,1,
+      1,1,1,1,1,1,
+      1,1,1,
+      1,1,1,1,1,1,1,
+      1,1,1,1,1,1,1,
+    ]
+    kd: [
+      3,3,3,3,3,3,
+      3,3,3,3,3,3,
+      3,3,3,
+      3,3,3,3,3,3,3,
+      3,3,3,3,3,3,3,
+    ]
+  FixStand:
+    transitions:
+      Passive: LT + B.on_pressed
+      HugWBC: LT(2s) + right.on_pressed
+    # Stand-up gains are this branch's existing FixStand deployment values.
+    kp: [
+      100., 100., 100., 150., 40., 40.,
+      100., 100., 100., 150., 40., 40.,
+      200,200,200,
+      40,40,40,40,40,40,40,
+      40,40,40,40,40,40,40,
+    ]
+    kd: [
+      2,2,2,4,2,2,
+      2,2,2,4,2,2,
+      5,5,5,
+      10,10,10,10,10,10,10,
+      10,10,10,10,10,10,10,
+    ]
+    ts: [0, 3]
+    qs: [
+      [],
+      # HugWBC preparation pose (SDK order): training q0 legs/waist, reference
+      # arm centre (pitch .3, roll +/-.27, yaw 0, elbow .97), wrists 0 (training
+      # asset nominal; verify actual encoder zero before hardware use).
+      [
+        -0.1, 0, 0, 0.3, -0.2, 0,
+        -0.1, 0, 0, 0.3, -0.2, 0,
+        0, 0, 0,
+        0.3, 0.27, 0, 0.97, 0, 0, 0,
+        0.3, -0.27, 0, 0.97, 0, 0, 0,
+      ]
+    ]
+  HugWBC:
+    transitions:
+      Passive: LT + B.on_pressed
+    policy_dir: config/policy/hugwbc/r42
+    # Fixed forward-walk test profile, exactly the accepted evaluation command
+    # (eval_upright 'upright' protocol / baseline-hybrid rollout cmd_0..cmd_10):
+    # vx, vy, wz, gait freq, phase offset, duty, swing height, body height,
+    # body pitch, waist cmd, interrupt flag (must stay 0).
+    command: [0.5, 0.0, 0.0, 1.5, 0.5, 0.5, 0.1, 0.0, 0.0, 0.0, 0.0]
+    standing: false
+    # Deployment limits (NOT training-validated values):
+    max_tilt: 0.85            # pelvis IMU tilt kill, rad
+    max_start_error: 0.6      # start-pose gate vs prep pose, rad, pending hardware check
