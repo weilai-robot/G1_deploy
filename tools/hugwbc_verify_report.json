@@ -9,8 +9,10 @@
         "history_order_oldest_dropped": "ok",
         "hybrid_action_history_backfill": "ok",
         "torso_imu_waist_rate_compensated": "max residual gyro 0.00e+00, gravity 0.00e+00",
+        "torso_imu_three_axis_max_abs_error": 1.4901161193847656e-07,
         "wrist_hold_targets_preserved": "ok",
-        "guard_empty_intersection_reported": "violations=1, target=2.8698, requested_tau=169.5 > training limit 140"
+        "speed_guard_first_target_state": "ok",
+        "guard_empty_intersection_rejected": true
       },
       "python_core_standing_clocks_zero": true,
       "python_core_walked_ticks": 100,
@@ -28,8 +30,10 @@
         "history_order_oldest_dropped": "ok",
         "hybrid_action_history_backfill": "ok",
         "torso_imu_waist_rate_compensated": "max residual gyro 0.00e+00, gravity 0.00e+00",
+        "torso_imu_three_axis_max_abs_error": 1.4901161193847656e-07,
         "wrist_hold_targets_preserved": "ok",
-        "guard_empty_intersection_reported": "violations=1, target=2.8698, requested_tau=169.5 > training limit 140"
+        "speed_guard_first_target_state": "ok",
+        "guard_empty_intersection_rejected": true
       },
       "python_core_standing_clocks_zero": true,
       "python_core_walked_ticks": 100,

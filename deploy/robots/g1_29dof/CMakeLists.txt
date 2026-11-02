@@ -38,6 +38,8 @@ target_link_libraries(hugwbc_runtime INTERFACE Eigen3::Eigen ${YAML_TARGET} "${O
 if(BUILD_HUGWBC_OFFLINE)
   add_executable(hugwbc_offline ../../tools/hugwbc_offline.cpp)
   target_link_libraries(hugwbc_offline PRIVATE hugwbc_runtime)
+  add_executable(hugwbc_core_checks ../../tools/hugwbc_core_checks.cpp)
+  target_link_libraries(hugwbc_core_checks PRIVATE hugwbc_runtime)
 endif()
 
 if(BUILD_ROBOT_CONTROLLER)

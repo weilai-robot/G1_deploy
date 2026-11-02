@@ -18,6 +18,8 @@
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace hugwbc {
 constexpr int J = 23;         // policy/model joints (training order)
@@ -144,9 +146,7 @@ struct Tick {
     Motors sdk_targets{};      // 23 policy targets + 6 wrist hold targets
     std::array<float, ARMS> arm_reference{};  // rad, arm_model_indices order
     int limited_count = 0;     // deploy-side guard activations this tick
-    int guard_violations = 0;  // constraint sets with an EMPTY intersection (F5):
-                               // target fell back to the position bound and the
-                               // torque guard could NOT be honoured
+    int guard_violations = 0;  // zero for returned ticks; infeasible ticks throw
     std::uint64_t index = 0;   // policy tick counter since reset
 };
 
@@ -285,7 +285,8 @@ public:
         } else {
             // Torso IMU: recover the pelvis through the actual waist chain
             // yaw -> roll -> pitch (training URDF origins carry no rotation).
-            //     R_world<-pelvis = R_world<-torso * R_torso<-pelvis^T
+            // R_pelvis_from_torso = Rz(yaw) Rx(roll) Ry(pitch).
+            // R_world_from_pelvis = R_world_from_torso * R_pelvis_from_torso^T.
             const Eigen::Matrix3f rz =
                 Eigen::AngleAxisf(s.q[12], Vec::UnitZ()).toRotationMatrix();
             const Eigen::Matrix3f rzrx =
@@ -299,7 +300,7 @@ public:
             // coordinates. Pelvis gyro = torso rate - waist relative rate,
             // both expressed in pelvis coordinates (the plain rotation alone
             // leaks waist motion into the pelvis observation).
-            const Vec w_torso_in_pelvis = r_torso_p.transpose() * s.angular_velocity;
+            const Vec w_torso_in_pelvis = r_torso_p * s.angular_velocity;
             const Vec w_waist_rel =
                 Vec::UnitZ() * s.dq[12] + rz * (Vec::UnitX() * s.dq[13]) +
                 rzrx * (Vec::UnitY() * s.dq[14]);
@@ -312,12 +313,11 @@ public:
 private:
     // Deployment-side protections documented in the plan (training computes
     // tau = clip(Kp*(q*-q) - Kd*dq, +/-tau): intersect the position, optional
-    // speed and torque-feasible intervals. When the intersection is EMPTY the
-    // target falls back to the position bound, the tick reports
-    // guard_violations, and the state logs it - the guard is NOT silently
-    // assumed successful (firmware torque saturation is the remaining
-    // protection, mirroring the training-side torque clip). Wrists have no
-    // trained parameters and get no torque guard.
+    // speed and torque-feasible intervals. An EMPTY intersection rejects the
+    // entire tick before any target package can be published. The FSM catches
+    // the fault and transitions to its damping/Passive path. Do not assume the
+    // firmware applies the training torque limit. Wrists have no trained
+    // parameters and get no torque guard.
     int apply_guards(Motors& targets, const Snapshot& s) {
         int limited = 0;
         guard_violations_ = 0;
@@ -340,12 +340,9 @@ private:
                 if (std::abs(bounded - desired) > 1e-5f) ++limited;
                 desired = bounded;
             } else {
-                // Undefined protection state: keep the position bound, report.
-                const float bounded = std::clamp(desired, cfg_.lower[i] + 0.01f,
-                                                 cfg_.upper[i] - 0.01f);
-                if (std::abs(bounded - desired) > 1e-5f) ++limited;
-                desired = bounded;
                 ++guard_violations_;
+                throw std::runtime_error("Empty target constraint intersection at SDK motor " +
+                                         std::to_string(id));
             }
             targets[id] = desired;
             last_target_[id] = desired;

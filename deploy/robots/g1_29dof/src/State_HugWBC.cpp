@@ -1,4 +1,6 @@
 #include "State_HugWBC.h"
+#include <iomanip>
+#include <limits>
 
 State_HugWBC::State_HugWBC(int state, std::string name) : FSMState(state, name) {
     auto cfg = param::config["FSM"][name];
@@ -155,12 +157,8 @@ void State_HugWBC::policy_loop() {
                 targets_ = tick.sdk_targets;
                 last_result_ = inference_done;
             }
-            const auto publish_time = Clock::now();
-            log_tick(tick, sensor_time, inference_done, publish_time);
-            if (tick.guard_violations > 0)
-                spdlog::warn("HugWBC tick {}: {} target(s) left the torque-guard envelope "
-                             "(empty position/torque intersection); firmware saturates",
-                             tick.index, tick.guard_violations);
+            const auto target_ready_time = Clock::now();
+            log_tick(tick, sensor_time, inference_done, target_ready_time);
             deadline += dt;
             if (Clock::now() > deadline + dt)
                 throw std::runtime_error("Policy missed its 20 ms deadline; no catch-up inference");
@@ -178,14 +176,17 @@ void State_HugWBC::open_tick_log() {
         const auto dir = param::proj_dir / "log";
         std::filesystem::create_directories(dir);
         const auto path = dir / ("hugwbc_ticks_" +
-                                 std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                                 std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(
                                                     std::chrono::system_clock::now()
                                                         .time_since_epoch())
                                                     .count()) +
                                  ".csv");
         tick_log_.open(path.string());
         if (!tick_log_) return;
-        tick_log_ << "index,t_sensor_us,t_infer_us,t_publish_us,g,phase_left,phase_right,"
+        tick_log_ << std::setprecision(std::numeric_limits<double>::max_digits10);
+        // Snapshot/target-ready times are host-side markers, not device sample
+        // or DDS send timestamps. Preserve precision for per-tick differences.
+        tick_log_ << "index,t_snapshot_begin_us,t_infer_done_us,t_target_ready_us,g,phase_left,phase_right,"
                      "clock_left,clock_right,standing";
         for (int i = 0; i < hugwbc::CMD; ++i) tick_log_ << ",cmd" << i;
         for (int i = 0; i < hugwbc::J; ++i) tick_log_ << ",raw" << i;
@@ -195,6 +196,8 @@ void State_HugWBC::open_tick_log() {
         for (int i = 0; i < hugwbc::SDK; ++i) tick_log_ << ",target" << i;
         for (int i = 0; i < hugwbc::SDK; ++i) tick_log_ << ",q" << i;
         for (int i = 0; i < hugwbc::SDK; ++i) tick_log_ << ",dq" << i;
+        tick_log_ << ",imu_qw,imu_qx,imu_qy,imu_qz";
+        for (int i = 0; i < 3; ++i) tick_log_ << ",imu_gyro" << i;
         for (int i = 0; i < 3; ++i) tick_log_ << ",pelvis_gyro" << i;
         for (int i = 0; i < 3; ++i) tick_log_ << ",pelvis_gravity" << i;
         for (int i = 0; i < hugwbc::WRISTS; ++i) tick_log_ << ",wrist_actual" << i;
@@ -206,15 +209,15 @@ void State_HugWBC::open_tick_log() {
 }
 
 void State_HugWBC::log_tick(const hugwbc::Tick& tick, Clock::time_point sensor_time,
-                            Clock::time_point inference_done, Clock::time_point publish_time) {
+                            Clock::time_point inference_done, Clock::time_point target_ready_time) {
     // Full per-tick record for sim2real analysis (plan section 11), written by
     // the policy thread only; the FSM send loop never touches this stream.
     if (tick_log_.is_open()) {
         const auto us = [](Clock::time_point t) {
-            return std::chrono::duration<double>(t.time_since_epoch()).count() * 1e6;
+            return std::chrono::duration_cast<std::chrono::microseconds>(t.time_since_epoch()).count();
         };
         tick_log_ << tick.index << ',' << us(sensor_time) << ',' << us(inference_done) << ','
-                  << us(publish_time) << ',' << tick.frame.g << ',' << tick.frame.phase_left << ','
+                  << us(target_ready_time) << ',' << tick.frame.g << ',' << tick.frame.phase_left << ','
                   << tick.frame.phase_right << ',' << tick.frame.clock_left << ','
                   << tick.frame.clock_right << ',' << (standing_ ? 1 : 0);
         for (float v : command_) tick_log_ << ',' << v;
@@ -225,6 +228,9 @@ void State_HugWBC::log_tick(const hugwbc::Tick& tick, Clock::time_point sensor_t
         for (float v : tick.sdk_targets) tick_log_ << ',' << v;
         for (float v : last_snapshot_.q) tick_log_ << ',' << v;
         for (float v : last_snapshot_.dq) tick_log_ << ',' << v;
+        const auto& imu = last_snapshot_.orientation;
+        tick_log_ << ',' << imu.w() << ',' << imu.x() << ',' << imu.y() << ',' << imu.z();
+        for (int i = 0; i < 3; ++i) tick_log_ << ',' << last_snapshot_.angular_velocity[i];
         for (int i = 0; i < 3; ++i) tick_log_ << ',' << last_pelvis_gyro_[i];
         for (int i = 0; i < 3; ++i) tick_log_ << ',' << last_pelvis_gravity_[i];
         const auto& wrist_ids = core_->config().wrist_sdk_indices;

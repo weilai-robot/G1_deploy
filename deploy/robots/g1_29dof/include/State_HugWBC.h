@@ -31,7 +31,7 @@ private:
     void damping();
     void open_tick_log();
     void log_tick(const hugwbc::Tick& tick, Clock::time_point sensor_time,
-                  Clock::time_point inference_done, Clock::time_point publish_time);
+                  Clock::time_point inference_done, Clock::time_point target_ready_time);
 
     std::unique_ptr<hugwbc::Core> core_;
     std::unique_ptr<hugwbc::Runner> runner_;

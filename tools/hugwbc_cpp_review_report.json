@@ -1,0 +1,188 @@
+{
+  "core_checks": {
+    "r41": "PASS: history, hybrid actions, reset, standing, three-axis IMU, wrists, infeasible tick rejection, speed-limit initialization",
+    "r42": "PASS: history, hybrid actions, reset, standing, three-axis IMU, wrists, infeasible tick rejection, speed-limit initialization"
+  },
+  "negative_tests": {
+    "r41-invalid_imu": {
+      "passed": true,
+      "stderr": "HugWBC offline error: Invalid pelvis IMU data"
+    },
+    "r41-infeasible_constraints": {
+      "passed": true,
+      "stderr": "HugWBC offline error: Empty target constraint intersection at SDK motor 3"
+    },
+    "r41-invalid_format": {
+      "passed": true,
+      "stderr": "HugWBC offline error: Incompatible HugWBC package format"
+    },
+    "r41-corrupt_policy": {
+      "passed": true,
+      "stderr": "HugWBC offline error: policy.onnx hash mismatch: expected 836b2f96ea55838523ad3c6df2a8fd19fee60cccdc3371f760b6131d1b87e575, got e76e7fc8f48a7b742be665d0446bb4673d430d2b1918e3c49c6912d58dfc035e"
+    },
+    "r42-invalid_imu": {
+      "passed": true,
+      "stderr": "HugWBC offline error: Invalid pelvis IMU data"
+    },
+    "r42-infeasible_constraints": {
+      "passed": true,
+      "stderr": "HugWBC offline error: Empty target constraint intersection at SDK motor 3"
+    },
+    "r42-invalid_format": {
+      "passed": true,
+      "stderr": "HugWBC offline error: Incompatible HugWBC package format"
+    },
+    "r42-corrupt_policy": {
+      "passed": true,
+      "stderr": "HugWBC offline error: policy.onnx hash mismatch: expected 29f777b00cad453c6b1e67a9cc5ac5935244d2cd773c7945aa15e936bf571de4, got e76e7fc8f48a7b742be665d0446bb4673d430d2b1918e3c49c6912d58dfc035e"
+    }
+  },
+  "replay": {
+    "r41-walk": 100,
+    "r41-stand_reset": 60,
+    "r42-walk": 100,
+    "r42-stand_reset": 60
+  },
+  "build_logs": {
+    "configure.log": "-- The CXX compiler identification is GNU 13.1.0\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: /usr/bin/c++ - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.4s)\n-- Generating done (0.0s)\n-- Build files have been written to: /tmp/hugwbc-deploy-review-7956a48/build\n",
+    "build.log": "[ 25%] Building CXX object CMakeFiles/hugwbc_core_checks.dir/tmp/hugwbc-deploy-review-7956a48/source/deploy/tools/hugwbc_core_checks.cpp.o\n[ 50%] Building CXX object CMakeFiles/hugwbc_offline.dir/tmp/hugwbc-deploy-review-7956a48/source/deploy/tools/hugwbc_offline.cpp.o\n[ 75%] Linking CXX executable hugwbc_core_checks\n[ 75%] Built target hugwbc_core_checks\n[100%] Linking CXX executable hugwbc_offline\n[100%] Built target hugwbc_offline\n"
+  },
+  "parity": {
+    "r41-stand_reset": {
+      "passed": true,
+      "ticks": 60,
+      "max_abs_error": {
+        "obs": 8.58706787099095e-06,
+        "history": 8.58706787099095e-06,
+        "g": 4.972076639297995e-10,
+        "phase_left": 4.791259611280907e-10,
+        "phase_right": 4.972076639297995e-10,
+        "clock_left": 2.0854832460948103e-07,
+        "clock_right": 2.235673904477098e-07,
+        "raw": 8.58706787099095e-06,
+        "hybrid": 8.58706787099095e-06,
+        "clipped": 8.58706787099095e-06,
+        "q_target": 2.141766967778125e-06,
+        "arm_reference": 3.029446410396375e-08,
+        "sdk_targets": 2.012126441963691e-06,
+        "limited": 0,
+        "guard_violations": 0,
+        "index": 0
+      }
+    },
+    "r41-walk": {
+      "passed": true,
+      "ticks": 100,
+      "max_abs_error": {
+        "obs": 4.414302978483775e-06,
+        "history": 4.414302978483775e-06,
+        "g": 4.985351020891926e-10,
+        "phase_left": 4.985351576003438e-10,
+        "phase_right": 4.985351020891926e-10,
+        "clock_left": 3.6510079040597e-07,
+        "clock_right": 3.128257446416427e-07,
+        "raw": 4.414302978483775e-06,
+        "hybrid": 4.414302978483775e-06,
+        "clipped": 4.414302978483775e-06,
+        "q_target": 1.1030757446350847e-06,
+        "arm_reference": 5.991380308545402e-08,
+        "sdk_targets": 5.962465286224461e-07,
+        "limited": 0,
+        "guard_violations": 0,
+        "index": 0
+      }
+    },
+    "r42-stand_reset": {
+      "passed": true,
+      "ticks": 60,
+      "max_abs_error": {
+        "obs": 3.8135394286875623e-06,
+        "history": 3.8135394286875623e-06,
+        "g": 4.972076639297995e-10,
+        "phase_left": 4.791259611280907e-10,
+        "phase_right": 4.972076639297995e-10,
+        "clock_left": 2.0854832460948103e-07,
+        "clock_right": 2.235673904477098e-07,
+        "raw": 3.8135394286875623e-06,
+        "hybrid": 3.8135394286875623e-06,
+        "clipped": 3.8135394286875623e-06,
+        "q_target": 9.539639282962753e-07,
+        "arm_reference": 3.029446410396375e-08,
+        "sdk_targets": 4.173073425706164e-07,
+        "limited": 0,
+        "guard_violations": 0,
+        "index": 0
+      }
+    },
+    "r42-walk": {
+      "passed": true,
+      "ticks": 100,
+      "max_abs_error": {
+        "obs": 3.290507995590275e-05,
+        "history": 3.290507995590275e-05,
+        "g": 4.985351020891926e-10,
+        "phase_left": 4.985351576003438e-10,
+        "phase_right": 4.985351020891926e-10,
+        "clock_left": 3.6510079040597e-07,
+        "clock_right": 3.128257446416427e-07,
+        "raw": 3.290507995590275e-05,
+        "hybrid": 3.290507995590275e-05,
+        "clipped": 3.290507995590275e-05,
+        "q_target": 8.22526998900397e-06,
+        "arm_reference": 5.991380308545402e-08,
+        "sdk_targets": 5.006815745542403e-06,
+        "limited": 0,
+        "guard_violations": 0,
+        "index": 0
+      }
+    }
+  },
+  "parity_absolute_tolerance": {
+    "obs": 0.0002,
+    "history": 0.0002,
+    "g": 1e-06,
+    "phase_left": 1e-06,
+    "phase_right": 1e-06,
+    "clock_left": 1e-05,
+    "clock_right": 1e-05,
+    "raw": 0.0002,
+    "hybrid": 0.0002,
+    "clipped": 0.0002,
+    "q_target": 1e-05,
+    "arm_reference": 1e-05,
+    "sdk_targets": 1e-05,
+    "limited": 0,
+    "guard_violations": 0,
+    "index": 0
+  },
+  "method": "Actual Linux C++/ONNX binaries vs Windows Python/ONNX; replay with synthetic sensor inputs, not a closed-loop test.",
+  "local_onnxruntime_version": "1.23.2",
+  "cpp_onnxruntime_version": "1.22.0",
+  "source_sha256": {
+    "deploy/include/hugwbc/core.h": "8684c564db4b0fe67148a6f52707940af6ac9d3521f0d1a40e390df0d92f0a17",
+    "deploy/include/hugwbc/package.h": "69127300102464fffc0212dec4191ae232d51a1be531c91869b4a8a1fd8616e9",
+    "deploy/include/hugwbc/runner.h": "85ff78137fd9d75377d87e6ce8d91e4724ed64c1612a66a10c95452a0e981dc9",
+    "deploy/tools/hugwbc_offline.cpp": "c858914fe8d527ebc9560d463c7f34a616779767b116187d80594930f1ca0e53",
+    "deploy/tools/hugwbc_core_checks.cpp": "dc073f42ba5c35eb55dff12d04d1676a25d6dfd718141c5e760f6c6c208f4022"
+  },
+  "build_entry_checks": {
+    "r41": {
+      "package_checks_passed": true,
+      "full_controller_build_completed": false,
+      "configuration_blocker": "spdlog development package not found",
+      "log": "entry-r41.log"
+    },
+    "r42": {
+      "package_checks_passed": true,
+      "full_controller_build_completed": false,
+      "configuration_blocker": "spdlog development package not found",
+      "log": "entry-r42.log"
+    }
+  },
+  "pre_fix_regression_failure": "FAILED F6: three-axis torso transform error 0.17697158455848694",
+  "not_covered": [
+    "Full g1_ctrl compilation and FSM runtime",
+    "Closed-loop simulation",
+    "Hardware validation and timing"
+  ]
+}
