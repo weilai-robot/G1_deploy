@@ -36,9 +36,18 @@ if [[ ! -f "$runtime_dir/include/onnxruntime_cxx_api.h" || ! -f "$runtime_dir/li
   fi
   mv "$download_dir/onnxruntime-linux-$runtime_arch-$runtime_version" "$runtime_dir"
 fi
-# Select package checks by the enabled FSM states of this config.
-python3 "$repo_dir/tools/select_package_checks.py" "$config" | while IFS= read -r checker; do
-  python3 "$repo_dir/tools/$checker"
+# Select package checks by the enabled FSM states of this config. The
+# selector prints TAB-separated '<checker> <package>'; do not re-quote the
+# whole line as one filename. CR is stripped in case the checkout carries
+# CRLF line endings (e.g. Windows working copies pushed to Linux builders).
+python3 "$repo_dir/tools/select_package_checks.py" "$config" | tr -d '\r' \
+| while IFS=$'\t' read -r checker package; do
+  [[ -n "$checker" ]] || continue
+  if [[ -n "${package:-}" ]]; then
+    python3 "$repo_dir/tools/$checker" "$package"
+  else
+    python3 "$repo_dir/tools/$checker"
+  fi
 done
 cmake -S "$repo_dir/deploy/robots/g1_29dof" -B "$repo_dir/deploy/robots/g1_29dof/build" \
   -DCMAKE_BUILD_TYPE=Release -DONNXRUNTIME_ROOT="$runtime_dir" \

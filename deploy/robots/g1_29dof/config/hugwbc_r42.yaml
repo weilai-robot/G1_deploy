@@ -73,5 +73,6 @@ FSM:
     command: [0.5, 0.0, 0.0, 1.5, 0.5, 0.5, 0.1, 0.0, 0.0, 0.0, 0.0]
     standing: false
     # Deployment limits (NOT training-validated values):
-    max_tilt: 0.85            # pelvis IMU tilt kill, rad
+    max_tilt: 0.85            # pelvis tilt kill (pelvis frame, incl. torso-IMU recovery), rad
     max_start_error: 0.6      # start-pose gate vs prep pose, rad, pending hardware check
+    tick_log: true            # per-tick CSV record in log/ (plan section 11)

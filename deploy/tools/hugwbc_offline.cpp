@@ -60,7 +60,8 @@ int main(int argc, char** argv) {
             std::cout << ",\"q_target\":"; array_json(tick.q_target);
             std::cout << ",\"arm_reference\":"; array_json(tick.arm_reference);
             std::cout << ",\"sdk_targets\":"; array_json(tick.sdk_targets);
-            std::cout << ",\"limited\":" << tick.limited_count << "}" << std::endl;
+            std::cout << ",\"limited\":" << tick.limited_count;
+            std::cout << ",\"guard_violations\":" << tick.guard_violations << "}" << std::endl;
         }
     } catch (const std::exception& e) {
         std::cerr << "HugWBC offline error: " << e.what() << '\n';

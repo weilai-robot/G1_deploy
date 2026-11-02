@@ -74,6 +74,7 @@ class ReferenceCore:
         self.g = F32(0)
         self.last_hybrid = np.zeros(23, dtype=F32)
         self.history = np.zeros((5, 88), dtype=F32)
+        self.last_target = np.zeros(29, dtype=F32)
         self.seeded = False
         self.tick = 0
 
@@ -88,6 +89,8 @@ class ReferenceCore:
 
         r = quat_matrix(quat)
         if cfg["imu_source"] == "torso":
+            # mirror core.h: pelvis orientation from the waist chain, and the
+            # torso absolute gyro MINUS the waist relative rate
             wy, wr, wp = F32(q[12]), F32(q[13]), F32(q[14])
             cy, sy = F32(math.cos(float(wy))), F32(math.sin(float(wy)))
             cr, sr = F32(math.cos(float(wr))), F32(math.sin(float(wr)))
@@ -95,11 +98,15 @@ class ReferenceCore:
             rz = np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]], dtype=F32)
             rx = np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]], dtype=F32)
             ry = np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]], dtype=F32)
-            waist = rz @ rx @ ry
-            r_pelvis = r @ waist.T
-            w_world = r @ np.asarray(omega, dtype=F32)
-            omega_b = r_pelvis.T @ w_world
-            r = r_pelvis
+            rzrx = rz @ rx
+            r_torso_p = rzrx @ ry                      # R_torso<-pelvis
+            r = quat_matrix(quat) @ r_torso_p.T        # R_world<-pelvis
+            w_torso_in_pelvis = r_torso_p.T @ np.asarray(omega, dtype=F32)
+            e_x = np.array([1, 0, 0], dtype=F32)
+            e_y = np.array([0, 1, 0], dtype=F32)
+            e_z = np.array([0, 0, 1], dtype=F32)
+            w_waist_rel = (e_z * dq[12] + rz @ (e_x * dq[13]) + rzrx @ (e_y * dq[14])).astype(F32)
+            omega_b = (w_torso_in_pelvis - w_waist_rel).astype(F32)
         else:
             omega_b = np.asarray(omega, dtype=F32)
         gravity = -r[2, :].astype(F32)
@@ -157,33 +164,60 @@ class ReferenceCore:
         for i, s in enumerate(cfg["wrist_hold"]["sdk_indices"]):
             sdk[s] = F32(cfg["wrist_hold"]["target_rad"][i])
 
-        # deployment guards (must mirror core.h apply_guards)
+        # deployment guards (must mirror core.h apply_guards: intersect
+        # position/speed/torque intervals; empty intersection -> position
+        # bound + explicit violation count)
         lower = np.asarray(cfg["joint_lower"], dtype=F32)
         upper = np.asarray(cfg["joint_upper"], dtype=F32)
         kp = np.asarray(cfg["kp"], dtype=F32)
         kd = np.asarray(cfg["kd"], dtype=F32)
         tau = np.asarray(cfg["torque_limits"], dtype=F32)
+        pos_lo = lower + F32(0.01)
+        pos_hi = upper - F32(0.01)
         limited = 0
+        violations = 0
         for i, s in enumerate(cfg["sdk_indices"]):
-            desired = np.clip(sdk[s], F32(lower[i]) + F32(0.01), F32(upper[i]) - F32(0.01))
+            lo, hi = F32(pos_lo[i]), F32(pos_hi[i])
+            if cfg["max_target_speed"] > 0 and self.tick > 0:
+                v = F32(cfg["max_target_speed"] * cfg["step_dt"])
+                lo = F32(max(float(lo), float(self.last_target[s] - v)))
+                hi = F32(min(float(hi), float(self.last_target[s] + v)))
             if cfg["torque_guard"]:
                 center = F32(q[s] + F32(kd[i] * dq[s] / kp[i]))
                 radius = F32(tau[i] / kp[i])
-                desired = np.clip(desired, F32(center - radius), F32(center + radius))
-                desired = np.clip(desired, F32(lower[i]) + F32(0.01), F32(upper[i]) - F32(0.01))
-            if abs(float(desired - sdk[s])) > 1e-5:
-                limited += 1
+                lo = F32(max(float(lo), float(center - radius)))
+                hi = F32(min(float(hi), float(center + radius)))
+            desired = sdk[s]
+            if float(lo) <= float(hi):
+                bounded = F32(min(float(max(float(desired), float(lo))), float(hi)))
+                if abs(float(bounded - desired)) > 1e-5:
+                    limited += 1
+                desired = bounded
+            else:
+                # empty intersection: position bound wins, guard reported violated
+                bounded = F32(min(float(max(float(desired), float(pos_lo[i]))), float(pos_hi[i])))
+                if abs(float(bounded - desired)) > 1e-5:
+                    limited += 1
+                desired = bounded
+                violations += 1
             sdk[s] = F32(desired)
-        return hybrid, clipped, q_target, ref, sdk, limited
+            self.last_target[s] = F32(desired)
+        for s in cfg["wrist_hold"]["sdk_indices"]:
+            self.last_target[s] = sdk[s]
+        # F4: the NEXT observation carries the pre-clip hybrid action
+        self.last_hybrid = hybrid.copy()
+        return hybrid, clipped, q_target, ref, sdk, limited, violations
 
     def step(self, snapshot, command, standing, raw):
         obs, g, pl, pr, cl, cr = self.frame(snapshot, command, standing)
         self._phases = (pl, pr)
-        hybrid, clipped, q_target, ref, sdk, limited = self.complete(snapshot, command, standing, raw)
+        hybrid, clipped, q_target, ref, sdk, limited, violations = self.complete(
+            snapshot, command, standing, raw)
         return {"obs": obs, "history": self.history.reshape(-1).copy(), "g": self.g,
                 "phase_left": pl, "phase_right": pr, "clock_left": cl, "clock_right": cr,
                 "hybrid": hybrid, "clipped": clipped, "q_target": q_target,
-                "arm_reference": ref, "sdk_targets": sdk, "limited": limited}
+                "arm_reference": ref, "sdk_targets": sdk, "limited": limited,
+                "guard_violations": violations}
 
 
 # ---------------------------------------------------------------- fixtures
@@ -243,9 +277,139 @@ def run_cpp(binary, package, packets):
     return outputs
 
 
+def regression_checks(cfg, session):
+    """Fixed-behaviour regressions for the review findings F1/F4/F5/F6/F7.
+
+    Each check fails loudly; the returned dict records the measured evidence.
+    These encode the SAME semantics as hugwbc/core.h, so the C++ parity run
+    exercises the identical cases through the offline binary.
+    """
+    results = {}
+    cmd = list(contract.TEST_COMMAND)
+    import copy
+
+    def nominal_q():
+        q = np.zeros(29, dtype=F32)
+        q[0:6] = [-0.1, 0, 0, 0.3, -0.2, 0]          # left leg q0
+        q[6:12] = [-0.1, 0, 0, 0.3, -0.2, 0]         # right leg q0
+        q[12:15] = 0.0                                # waist q0
+        q[15:19] = [0.3, 0.27, 0, 0.97]               # left arm centre
+        q[19:22] = 0.0                                # left wrists
+        q[22:26] = [0.3, -0.27, 0, 0.97]              # right arm centre
+        q[26:29] = 0.0                                # right wrists
+        return q
+
+    # F1: history must drop the OLDEST frame (training ObservationBuffer.insert)
+    core = ReferenceCore(cfg)
+    core.reset()
+    for t in range(1, 9):
+        snapshot_q = nominal_q()
+        snapshot_q[0] = F32(snapshot_q[0] + 0.05 * t)  # left hip pitch, obs[6]
+        frame = core.frame((snapshot_q, np.zeros(29, F32),
+                            np.array([1, 0, 0, 0], F32), np.zeros(3, F32)), cmd, False)
+        core._phases = (frame[2], frame[3])
+        raw = session.run(["actions"], {"obs_history": core.history[None]})[0][0]
+        core.complete((snapshot_q, np.zeros(29, F32)), cmd, False, raw)
+        if t >= 5:
+            expected = [0.05 * (t - 4 + h) for h in range(5)]
+            actual = [float(core.history[h][6]) for h in range(5)]
+            if max(abs(a - e) for a, e in zip(actual, expected)) > 1e-6:
+                raise SystemExit(f"FAILED F1: history order {actual} != {expected}")
+    results["history_order_oldest_dropped"] = "ok"
+
+    # F4: next observation's action slice == previous pre-clip hybrid
+    core = ReferenceCore(cfg)
+    core.reset()
+    previous_hybrid = None
+    for t in range(4):
+        snapshot = (nominal_q(), np.full(29, F32(0.7), F32),
+                    np.array([0.98, 0.1, -0.1, 0.05], F32),
+                    np.array([0.2, -0.1, 0.3], F32))
+        frame = core.frame(snapshot, cmd, False)
+        core._phases = (frame[2], frame[3])
+        raw = session.run(["actions"], {"obs_history": core.history[None]})[0][0]
+        hybrid = core.complete(snapshot, cmd, False, raw)[0]
+        if previous_hybrid is not None:
+            slice_obs = frame[0][52:75]
+            if float(np.max(np.abs(slice_obs - previous_hybrid))) > 1e-6:
+                raise SystemExit("FAILED F4: obs action slice != previous hybrid action")
+        previous_hybrid = hybrid
+    results["hybrid_action_history_backfill"] = "ok"
+
+    # F6: torso IMU must subtract the waist relative rate
+    torso_cfg = copy.deepcopy(cfg)
+    torso_cfg["imu_source"] = "torso"
+    core = ReferenceCore(torso_cfg)
+    core.reset()
+    max_gyro, max_gravity = 0.0, 0.0
+    for q12, dq12 in ((0.3, 2.0), (-0.7, -3.0), (1.2, 0.5)):
+        q_t = nominal_q()
+        q_t[12] = F32(q12)
+        dq_t = np.zeros(29, dtype=F32)
+        dq_t[12] = F32(dq12)
+        half = q12 / 2.0
+        torso_quat = np.array([math.cos(half), 0.0, 0.0, math.sin(half)], F32)  # wxyz
+        torso_gyro = np.array([0.0, 0.0, dq12], F32)
+        frame = core.frame((q_t, dq_t, torso_quat, torso_gyro), cmd, False)
+        max_gyro = max(max_gyro, float(np.max(np.abs(frame[0][0:3]))))
+        max_gravity = max(max_gravity, float(np.max(np.abs(
+            frame[0][3:6] - np.array([0.0, 0.0, -1.0])))))
+        core._phases = (frame[2], frame[3])
+        raw = session.run(["actions"], {"obs_history": core.history[None]})[0][0]
+        core.complete((q_t, dq_t), cmd, False, raw)
+    if max_gyro > 1e-4:
+        raise SystemExit(f"FAILED F6: pelvis gyro leaks waist motion: {max_gyro}")
+    if max_gravity > 1e-3:
+        raise SystemExit(f"FAILED F6: pelvis gravity wrong: {max_gravity}")
+    results["torso_imu_waist_rate_compensated"] = (
+        f"max residual gyro {max_gyro:.2e}, gravity {max_gravity:.2e}")
+
+    # F7: non-zero wrist hold targets survive the mapping
+    wrist_cfg = copy.deepcopy(cfg)
+    targets = [0.1, -0.1, 0.05, -0.05, 0.02, -0.02]
+    wrist_cfg["wrist_hold"]["target_rad"] = targets
+    core = ReferenceCore(wrist_cfg)
+    core.reset()
+    frame = core.frame((nominal_q(), np.zeros(29, F32), np.array([1, 0, 0, 0], F32),
+                        np.zeros(3, F32)), cmd, False)
+    core._phases = (frame[2], frame[3])
+    raw = session.run(["actions"], {"obs_history": core.history[None]})[0][0]
+    sdk = core.complete((nominal_q(), np.zeros(29, F32)), cmd, False, raw)[4]
+    for value, slot in zip(targets, wrist_cfg["wrist_hold"]["sdk_indices"]):
+        if abs(float(sdk[slot]) - value) > 1e-6:
+            raise SystemExit(f"FAILED F7: wrist target at SDK {slot} is {sdk[slot]}, expected {value}")
+    results["wrist_hold_targets_preserved"] = "ok"
+
+    # F5: empty position/torque intersection must be REPORTED, not clamped silently.
+    # Left knee (SDK 3): crafted raw action drives the target far out; near-limit
+    # position with a large velocity empties the intersection.
+    core = ReferenceCore(cfg)
+    core.reset()
+    q_e = nominal_q()
+    q_e[3] = F32(2.8)   # left knee near URDF upper 2.8798
+    dq_e = np.zeros(29, dtype=F32)
+    dq_e[3] = F32(60.0)
+    frame = core.frame((q_e, dq_e, np.array([1, 0, 0, 0], F32), np.zeros(3, F32)), cmd, False)
+    core._phases = (frame[2], frame[3])
+    raw = session.run(["actions"], {"obs_history": core.history[None]})[0][0]
+    raw[3] = F32(50.0)  # knee target -> 0.25*50 = 12.5 rad (deliberately extreme)
+    hybrid, clipped, q_target, ref, sdk, limited, violations = core.complete(
+        (q_e, dq_e), cmd, False, raw)
+    target = float(sdk[3])
+    upper = cfg["joint_upper"][3] - 0.01
+    kp, kd, tau = cfg["kp"][3], cfg["kd"][3], cfg["torque_limits"][3]
+    residual = abs(kp * (target - float(q_e[3])) - kd * float(dq_e[3]))
+    if violations < 1:
+        raise SystemExit("FAILED F5: empty guard intersection was not reported as violation")
+    if abs(target - upper) > 1e-6:
+        raise SystemExit(f"FAILED F5: fallback target {target} != position bound {upper}")
+    results["guard_empty_intersection_reported"] = (
+        f"violations={violations}, target={target:.4f}, "
+        f"requested_tau={residual:.1f} > training limit {tau}")
+    return results
+
+
 def real_anchor(csv_path, dt=0.02):
-    """Validate the deployment gait-clock dynamics against the recorded
-    zero-update training rollout (foot_index_* = pre-remap phases)."""
     import csv
     with open(csv_path) as f:
         rows = list(csv.DictReader(f))
@@ -350,6 +514,7 @@ def main():
             max_error = max(max_error, float(np.max(np.abs(actual - expected))))
         variant_report["onnx_vs_pytorch_max_abs_error"] = max_error
         variant_report["onnx_vs_pytorch_samples"] = args.parity_samples
+        variant_report["regressions"] = regression_checks(cfg, session)
 
         # 3) Python reference core end-to-end (ONNX as the deployed artifact)
         core = ReferenceCore(cfg)
@@ -371,7 +536,8 @@ def main():
                                "clock_left": frame[4], "clock_right": frame[5],
                                "raw": raw, "hybrid": out[0], "clipped": out[1],
                                "q_target": out[2], "arm_reference": out[3],
-                               "sdk_targets": out[4], "limited": out[5]})
+                               "sdk_targets": out[4], "limited": out[5],
+                               "guard_violations": out[6]})
         # standing + re-entry without reset (history/g continue, clocks stay 0)
         core2 = ReferenceCore(cfg)
         core2.reset()
@@ -396,7 +562,7 @@ def main():
             atol = {"obs": 1e-5, "history": 1e-5, "g": 1e-6, "phase_left": 1e-6,
                     "phase_right": 1e-6, "clock_left": 1e-5, "clock_right": 1e-5,
                     "raw": 1e-6, "hybrid": 2e-4, "clipped": 1e-5, "q_target": 1e-5,
-                    "arm_reference": 1e-5, "sdk_targets": 1e-5}
+                    "arm_reference": 1e-5, "sdk_targets": 1e-5, "guard_violations": 0}
             max_errors = {}
             for py_out, cpp_out in zip(py_outputs, cpp_outputs):
                 errors = compare(py_out, cpp_out, atol)
@@ -404,8 +570,8 @@ def main():
                     max_errors[field] = max(max_errors.get(field, 0.0), value)
             variant_report["cpp_parity"] = {"executed": True, "ticks": len(packets),
                                             "max_abs_error": max_errors,
-                                            "hybrid_gate_note": "hybrid carries the arm-override "
-                                                                "semantics; raw is also compared per-slot"}
+                                            "note": "all pipeline intermediates compared "
+                                                    "per tick, incl. guard_violations"}
         else:
             variant_report["cpp_parity"] = {
                 "executed": False,

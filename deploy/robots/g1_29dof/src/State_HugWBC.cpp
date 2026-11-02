@@ -26,6 +26,7 @@ State_HugWBC::State_HugWBC(int state, std::string name) : FSMState(state, name) 
     standing_ = cfg["standing"].as<bool>(false);
     max_tilt_ = cfg["max_tilt"].as<float>(0.85f);
     max_start_error_ = cfg["max_start_error"].as<float>(0.6f);
+    tick_log_enabled_ = cfg["tick_log"].as<bool>(true);
     if (!(max_tilt_ > 0 && max_tilt_ < 1.5f) || !(max_start_error_ > 0 && max_start_error_ < 1.5f))
         throw std::runtime_error("Invalid HugWBC limits");
     registered_checks.insert(registered_checks.begin(),
@@ -111,6 +112,7 @@ void State_HugWBC::enter() {
             motor.tau() = 0;
         }
         running_ = true;
+        open_tick_log();
         worker_ = std::thread(&State_HugWBC::policy_loop, this);
     } catch (const std::exception& e) {
         stop(e.what());
@@ -133,9 +135,16 @@ void State_HugWBC::policy_loop() {
             if (lowstate->isTimeout()) throw std::runtime_error("LowState timeout");
             const auto sensor_time = Clock::now();
             auto current = snapshot();
-            const float tilt =
-                std::acos(std::clamp((current.orientation * hugwbc::Vec::UnitZ()).z(), -1.0f, 1.0f));
+            // Tilt gate on the SAME pelvis frame the actor receives (not on the
+            // raw IMU, which is the torso frame in imu_source=torso mode).
+            hugwbc::Quat pelvis;
+            hugwbc::Vec pelvis_gyro, pelvis_gravity;
+            core_->pelvis_frame(current, pelvis, pelvis_gyro, pelvis_gravity);
+            const float tilt = std::acos(std::clamp((pelvis * hugwbc::Vec::UnitZ()).z(), -1.0f, 1.0f));
             if (tilt > max_tilt_) throw std::runtime_error("Pelvis tilt limit exceeded");
+            last_snapshot_ = current;
+            last_pelvis_gyro_ = pelvis_gyro;
+            last_pelvis_gravity_ = pelvis_gravity;
             core_->prepare(current, command_, standing_);
             const auto raw = runner_->act(core_->history());
             const auto inference_done = Clock::now();
@@ -146,8 +155,12 @@ void State_HugWBC::policy_loop() {
                 targets_ = tick.sdk_targets;
                 last_result_ = inference_done;
             }
-            if (tick.index % 50 == 0) log_tick(tick, std::chrono::duration<double>(
-                                                           inference_done - sensor_time).count() * 1e3);
+            const auto publish_time = Clock::now();
+            log_tick(tick, sensor_time, inference_done, publish_time);
+            if (tick.guard_violations > 0)
+                spdlog::warn("HugWBC tick {}: {} target(s) left the torque-guard envelope "
+                             "(empty position/torque intersection); firmware saturates",
+                             tick.index, tick.guard_violations);
             deadline += dt;
             if (Clock::now() > deadline + dt)
                 throw std::runtime_error("Policy missed its 20 ms deadline; no catch-up inference");
@@ -159,19 +172,79 @@ void State_HugWBC::policy_loop() {
     }
 }
 
-void State_HugWBC::log_tick(const hugwbc::Tick& tick, double inference_ms) {
-    // 1 Hz diagnostic line from the policy thread only; never blocks the FSM
-    // send thread. Full-resolution logging stays in the offline/verification path.
+void State_HugWBC::open_tick_log() {
+    if (!tick_log_enabled_) return;
+    try {
+        const auto dir = param::proj_dir / "log";
+        std::filesystem::create_directories(dir);
+        const auto path = dir / ("hugwbc_ticks_" +
+                                 std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                                                    std::chrono::system_clock::now()
+                                                        .time_since_epoch())
+                                                    .count()) +
+                                 ".csv");
+        tick_log_.open(path.string());
+        if (!tick_log_) return;
+        tick_log_ << "index,t_sensor_us,t_infer_us,t_publish_us,g,phase_left,phase_right,"
+                     "clock_left,clock_right,standing";
+        for (int i = 0; i < hugwbc::CMD; ++i) tick_log_ << ",cmd" << i;
+        for (int i = 0; i < hugwbc::J; ++i) tick_log_ << ",raw" << i;
+        for (int i = 0; i < hugwbc::J; ++i) tick_log_ << ",hybrid" << i;
+        for (int i = 0; i < hugwbc::J; ++i) tick_log_ << ",clipped" << i;
+        for (int i = 0; i < hugwbc::ARMS; ++i) tick_log_ << ",arm_ref" << i;
+        for (int i = 0; i < hugwbc::SDK; ++i) tick_log_ << ",target" << i;
+        for (int i = 0; i < hugwbc::SDK; ++i) tick_log_ << ",q" << i;
+        for (int i = 0; i < hugwbc::SDK; ++i) tick_log_ << ",dq" << i;
+        for (int i = 0; i < 3; ++i) tick_log_ << ",pelvis_gyro" << i;
+        for (int i = 0; i < 3; ++i) tick_log_ << ",pelvis_gravity" << i;
+        for (int i = 0; i < hugwbc::WRISTS; ++i) tick_log_ << ",wrist_actual" << i;
+        tick_log_ << ",limited,guard_violations\n";
+        spdlog::info("HugWBC per-tick log: {}", path.string());
+    } catch (const std::exception& e) {
+        spdlog::warn("HugWBC tick log unavailable: {}", e.what());
+    }
+}
+
+void State_HugWBC::log_tick(const hugwbc::Tick& tick, Clock::time_point sensor_time,
+                            Clock::time_point inference_done, Clock::time_point publish_time) {
+    // Full per-tick record for sim2real analysis (plan section 11), written by
+    // the policy thread only; the FSM send loop never touches this stream.
+    if (tick_log_.is_open()) {
+        const auto us = [](Clock::time_point t) {
+            return std::chrono::duration<double>(t.time_since_epoch()).count() * 1e6;
+        };
+        tick_log_ << tick.index << ',' << us(sensor_time) << ',' << us(inference_done) << ','
+                  << us(publish_time) << ',' << tick.frame.g << ',' << tick.frame.phase_left << ','
+                  << tick.frame.phase_right << ',' << tick.frame.clock_left << ','
+                  << tick.frame.clock_right << ',' << (standing_ ? 1 : 0);
+        for (float v : command_) tick_log_ << ',' << v;
+        for (float v : tick.raw_action) tick_log_ << ',' << v;
+        for (float v : tick.hybrid_action) tick_log_ << ',' << v;
+        for (float v : tick.clipped_action) tick_log_ << ',' << v;
+        for (float v : tick.arm_reference) tick_log_ << ',' << v;
+        for (float v : tick.sdk_targets) tick_log_ << ',' << v;
+        for (float v : last_snapshot_.q) tick_log_ << ',' << v;
+        for (float v : last_snapshot_.dq) tick_log_ << ',' << v;
+        for (int i = 0; i < 3; ++i) tick_log_ << ',' << last_pelvis_gyro_[i];
+        for (int i = 0; i < 3; ++i) tick_log_ << ',' << last_pelvis_gravity_[i];
+        const auto& wrist_ids = core_->config().wrist_sdk_indices;
+        for (int w = 0; w < hugwbc::WRISTS; ++w) tick_log_ << ',' << last_snapshot_.q[wrist_ids[w]];
+        tick_log_ << ',' << tick.limited_count << ',' << tick.guard_violations << '\n';
+    }
+    if (tick.index % 50 != 0) return;  // 1 Hz console summary
+    const double inference_ms =
+        std::chrono::duration<double>(inference_done - sensor_time).count() * 1e3;
     const auto& f = tick.frame;
     spdlog::info(
         "HugWBC tick={} dt_ms={:.2f} g={:.4f} phase=[{:.4f},{:.4f}] clock=[{:.3f},{:.3f}] "
         "cmd_vx={:.2f} standing={} raw[0,3,12]=[{:.3f},{:.3f},{:.3f}] hybrid[0,3,12]=[{:.3f},{:.3f},{:.3f}] "
-        "arm_ref_pitch=[{:.3f},{:.3f}] limited={} targets[0,3,9,15,19]={:.3f},{:.3f},{:.3f},{:.3f},{:.3f}",
+        "arm_ref_pitch=[{:.3f},{:.3f}] limited={} violated={} targets[0,3,9,15,19]={:.3f},{:.3f},{:.3f},{:.3f},{:.3f}",
         tick.index, inference_ms, f.g, f.phase_left, f.phase_right, f.clock_left, f.clock_right,
         command_[0], standing_, tick.raw_action[0], tick.raw_action[3], tick.raw_action[12],
         tick.hybrid_action[0], tick.hybrid_action[3], tick.hybrid_action[12],
-        tick.arm_reference[0], tick.arm_reference[4], tick.limited_count, tick.sdk_targets[0],
-        tick.sdk_targets[3], tick.sdk_targets[9], tick.sdk_targets[15], tick.sdk_targets[19]);
+        tick.arm_reference[0], tick.arm_reference[4], tick.limited_count, tick.guard_violations,
+        tick.sdk_targets[0], tick.sdk_targets[3], tick.sdk_targets[9], tick.sdk_targets[15],
+        tick.sdk_targets[19]);
 }
 
 void State_HugWBC::damping() {
@@ -203,4 +276,8 @@ void State_HugWBC::run() {
 void State_HugWBC::exit() {
     running_ = false;
     if (worker_.joinable()) worker_.join();
+    if (tick_log_.is_open()) {
+        tick_log_.flush();
+        tick_log_.close();
+    }
 }

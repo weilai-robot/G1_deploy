@@ -109,7 +109,7 @@ private:
         h_[0] += a; h_[1] += b; h_[2] += c; h_[3] += d;
         h_[4] += e; h_[5] += f; h_[6] += g; h_[7] += h;
     }
-    std::uint32_t h_[8];
+    std::array<std::uint32_t, 8> h_{};  // std::array: braced assignment in reset()
     unsigned char buffer_[64];
     std::uint64_t len_ = 0;
     std::size_t buf_len_ = 0;

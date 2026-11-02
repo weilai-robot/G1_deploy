@@ -5,6 +5,13 @@
       "checkpoint_sha256": "2e468ff18b5d34797530182c1e87f0e09441ee11aadd24661fff10c1042f6b51",
       "onnx_vs_pytorch_max_abs_error": 1.1444091796875e-05,
       "onnx_vs_pytorch_samples": 64,
+      "regressions": {
+        "history_order_oldest_dropped": "ok",
+        "hybrid_action_history_backfill": "ok",
+        "torso_imu_waist_rate_compensated": "max residual gyro 0.00e+00, gravity 0.00e+00",
+        "wrist_hold_targets_preserved": "ok",
+        "guard_empty_intersection_reported": "violations=1, target=2.8698, requested_tau=169.5 > training limit 140"
+      },
       "python_core_standing_clocks_zero": true,
       "python_core_walked_ticks": 100,
       "python_core_executed": true,
@@ -17,6 +24,13 @@
       "checkpoint_sha256": "4933371459e0e26ec74833c4161be6774201c7158d6810334578e89bec37cb04",
       "onnx_vs_pytorch_max_abs_error": 9.5367431640625e-06,
       "onnx_vs_pytorch_samples": 64,
+      "regressions": {
+        "history_order_oldest_dropped": "ok",
+        "hybrid_action_history_backfill": "ok",
+        "torso_imu_waist_rate_compensated": "max residual gyro 0.00e+00, gravity 0.00e+00",
+        "wrist_hold_targets_preserved": "ok",
+        "guard_empty_intersection_reported": "violations=1, target=2.8698, requested_tau=169.5 > training limit 140"
+      },
       "python_core_standing_clocks_zero": true,
       "python_core_walked_ticks": 100,
       "python_core_executed": true,

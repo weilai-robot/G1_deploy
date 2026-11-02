@@ -1,14 +1,15 @@
 # G1 EDU U2 29DOF：HugWBC（R41/R42）模型部署流程
 
-编写日期：2026-11-02。分支 `yanni-G1-walk-hugWBC`。实现依据 [HugWBC_G1_29DOF_部署适配方案.md](../HugWBC_G1_29DOF_部署适配方案.md)（该文档由规划 AI 编写并核对了训练源码与模型张量；本文档记录执行 AI 的实际实现与实测结果）。
+编写日期：2026-11-02（rev2，修复审核 a075fda 发现的 F1-F7）。分支 `yanni-G1-walk-hugWBC`。实现依据 [HugWBC_G1_29DOF_部署适配方案.md](../HugWBC_G1_29DOF_部署适配方案.md)（该文档由规划 AI 编写并核对了训练源码与模型张量；本文档记录执行 AI 的实际实现与实测结果）。rev1 的外部审核结论与逐项修复见 §7。
 
 ## 当前状态与使用范围
 
 | 阶段 | 状态 |
 |---|---|
 | ONNX 导出（R41/R42） | ✅ 已执行，PyTorch↔ONNX 实测误差见 §5 |
-| 部署包校验（哈希/契约/PD/映射） | ✅ 两个包均通过 `tools/check_hugwbc_package.py` |
+| 部署包校验（哈希/契约/PD/映射） | ✅ 两个包均通过 `tools/check_hugwbc_package.py`（含显式包路径调用方式） |
 | Python 参考核心数值回放 | ✅ 已执行（含真实 rollout 相位锚点，见 §6） |
+| 审核回归（F1/F4/F5/F6/F7） | ✅ `verify_hugwbc.py regressions` 全部通过（§6.1） |
 | C++ 数值对照（hugwbc_offline） | ⚠️ 代码已完成；本机（Windows）无 C++ 工具链，未执行——须在 Linux 构建机上运行 `tools/verify_hugwbc.py --offline-binary` |
 | C++ 闭环仿真 | ❌ 未执行 |
 | 真机验证 | ❌ 未执行（须人批准、人操作） |
@@ -163,11 +164,22 @@ tools/build_g1_hugwbc.sh r41     # 或 r42；内部调用 build_g1_deploy.sh --c
 | 重建 actor ↔ ONNX（64 样本） | ✅ 最大误差 1.14e-05（r41）/ 9.54e-06（r42） |
 | 真实 rollout 锚点（16000 行，exp-20261030-004 baseline-hybrid seed1） | ✅ 相位推进 = 0.02·cmd3（误差 ≤3.1e-08），左右相位差 = 半周期（误差 ≤3.0e-08） |
 | Python 参考核心：站立时钟置零/行走回绕 100 tick | ✅ |
+| 审核回归 F1/F4/F5/F6/F7 | ✅ 全部通过（§6.1） |
 | C++ 对照（`--offline-binary`） | ⚠️ 未执行：本机无 C++ 工具链 |
 | C++ 闭环仿真 | ❌ 未执行 |
 | 真机（pelvis IMU 源、腕部零位标定） | ❌ 未执行 |
 
-**C++ 对照在 Linux 构建机上补跑的命令**：
+### 6.1 审核回归（rev2 新增，verify_hugwbc.py `regressions` 字段）
+
+| 回归 | 内容 | 结果（两版相同） |
+|---|---|---|
+| F1 历史顺序 | 连续 8 帧、t≥5 后检查 5 帧槽位 = [t-4, t-3, t-2, t-1, t]（淘汰最旧帧） | ✅ ok |
+| F4 hybrid 回填 | 第 t+1 拍观测 [52:75] == 第 t 拍 clip 前 hybrid（含参考臂槽位） | ✅ ok |
+| F5 空交集上报 | 左膝近上限 + 高速构造位置/力矩区间无交集：target 回落位置界、`guard_violations=1`、请求力矩 169.5 > 训练限 140 | ✅ violations=1, target=2.8698 |
+| F6 torso IMU 补偿 | 仅腰 yaw 运动（0.3/-0.7/1.2 rad，2/-3/0.5 rad/s）+ 匹配的 torso 陀螺：pelvis 角速度与重力残差 | ✅ 残差 0（原实现泄漏 0.25） |
+| F7 腕目标索引 | 六腕写入非零保持目标 [0.1,-0.1,0.05,-0.05,0.02,-0.02]，逐 SDK 槽位读回 | ✅ ok |
+
+**C++ 对照在 Linux 构建机上补跑的命令**（回归用例在 C++ 侧通过同一 offline 二进制覆盖）：
 
 ```bash
 cmake -S deploy/robots/g1_29dof -B deploy/robots/g1_29dof/build -DCMAKE_BUILD_TYPE=Release \
@@ -176,15 +188,34 @@ cmake --build deploy/robots/g1_29dof/build --target hugwbc_offline
 python tools/verify_hugwbc.py --offline-binary deploy/robots/g1_29dof/build/hugwbc_offline --report tools/hugwbc_verify_report.json
 ```
 
-## 7. 硬件注意事项（真机前必读）
+## 7. rev1 审核结论与逐项修复（a075fda 审核，rev2 修复）
 
-1. **IMU 来源**：actor 输入是 **pelvis** 姿态/角速度。当前实现读 `imu_state()`（默认 `imu_source: pelvis`）。上真机前必须核对所用 SDK/仿真桥该字段确实属于 pelvis；若只有 torso IMU，deploy.yaml 改 `imu_source: torso`（实现里已含腰链 yaw→roll→pitch 的 pelvis 还原），并按 §6 用"仅动腰"记录验证 pelvis 观测不随躯干误转。四元数按接入层 wxyz 读取（Isaac Gym 内部 xyzw 的差异已在核心内处理约定）。
-2. **腕部**：目标 0 rad 位置保持；上电核对编码器零位与训练资产一致性；日志记录实际腕角。
+外部审核（`G1_HugWBC_部署执行审核_a075fda.md`，证据目录 `.review-artifacts/hugwbc-deploy-a075fda/`）判定 rev1 不通过并给出 F1-F7；逐项处理：
+
+| 项 | 审核判定 | 修复 | 验证 |
+|---|---|---|---|
+| F1 P1 历史移位方向错（`copy_backward` 保旧丢新） | 成立 | `core.h` 改为训练 `ObservationBuffer.insert` 语义：`copy(begin+OBS, end, begin)` 淘汰最旧帧 | 回归 F1（§6.1） |
+| F2 P1 SHA 类编译错（原生数组花括号赋值）+ core.h 缺 `<cstdint>` | 成立 | `h_` 改 `std::array<std::uint32_t,8>`；core.h 自含 `<cstdint>` | 源码抽取独立编译需 Linux 工具链复验（本机无编译器，见 §6 未验证项） |
+| F3 P1 构建入口把"脚本+参数"整行当文件名；校验器按目录名推断任务失败 | 成立 | 选择器改 TAB 分隔；`build_g1_deploy.sh` 按 TAB 拆分并透传包路径（防 CRLF）；`check_hugwbc_package.py` 接受 r41/r42 与 g1r41/g1r42 两种拼写 | 显式包路径调用两包 PASS |
+| F4 P2 Python 参考核心未回填上一拍 hybrid | 成立 | `complete()` 末尾回填 `last_hybrid`（并补 `last_target` 状态镜像速度限幅）；`verify` 断言观测动作切片 == 上一拍 hybrid | 回归 F4 |
+| F5 P2 限幅顺序使力矩守护可被位置限幅覆盖且不报告 | 成立 | `apply_guards` 改为区间求交：lo/hi 取位置、速度、力矩三界交集；空交集时回落位置界并计 `guard_violations`，状态线程逐 tick 记录并 warn | 回归 F5 |
+| F6 P2 torso IMU 只旋转陀螺、未减腰相对角速度 | 成立 | pelvis 角速度 = torso 绝对角速度（换到 pelvis 系）− 腰三关节相对角速度（含链上顺序旋转）；Python 参考核心同步修正；倾角门改用 `pelvis_frame` 输出（与 actor 同帧） | 回归 F6（残差 0） |
+| F7 P2 腕目标写入按 SDK 索引、读取按枚举序号 | 成立 | `complete()` 统一 `wrist_target[wrist_sdk_indices[w]]`（加载端同为 SDK 索引） | 回归 F7 |
+
+审核第 5 点（逐拍日志不足）同步处理：State_HugWBC 新增每 tick CSV 记录（`log/hugwbc_ticks_<epoch>.csv`，配置 `tick_log`，默认开），字段含 tick、传感器/推理/发布单调时间戳、g/相位/时钟、cmd11、standing、raw/hybrid/clipped 23 维、臂参考 8 维、SDK 29 目标、q/dq 29、pelvis 角速度/重力 3+3、实际腕角 6、limited、guard_violations；仅在策略线程写入，不阻塞 1 kHz 发送线程。
+
+## 8. 硬件注意事项（真机前必读）
+
+1. **IMU 来源**：actor 输入是 **pelvis** 姿态/角速度。当前实现读 `imu_state()`（默认 `imu_source: pelvis`）。上真机前必须核对所用 SDK/仿真桥该字段确实属于 pelvis；若只有 torso IMU，deploy.yaml 改 `imu_source: torso`（实现里已含腰链 yaw→roll→pitch 的 pelvis 还原 + 腰相对角速度扣除），并按 §6.1 用"仅动腰"记录验证 pelvis 观测不随躯干误转。倾角门与 actor 用同一 pelvis 帧计算。四元数按接入层 wxyz 读取（Isaac Gym 内部 xyzw 的差异已在核心内处理约定）。
+2. **腕部**：目标 0 rad 位置保持；上电核对编码器零位与训练资产一致性；逐 tick 日志记录实际腕角。
 3. **踝/腰 PR 语义**：训练为 pitch/roll 语义，接入前核对 SDK 串联 PR 模式，不得当并联 A/B 角。
 4. **起步**：进入 HugWBC 时动作历史清零、步态相位从 0 起步、5 帧历史用首帧真实观测填充——这是与训练 reset 不同的显式部署包装，闭环仿真未验证前不得上机。`max_start_error: 0.6`（rad）为未实测占位阈值。
 5. **启停/转向**：未实现。不要把 Velocity 手柄命令范围开放给 HugWBC。
 6. **退出**：异常→阻尼（kd=3）→Passive；阻尼不是已训练的制动能力。
+7. **力矩守护违约**：guard_violations>0 表示该 tick 位置/力矩区间无交集（目标已被位置界截断，实际请求力矩可超训练饱和值，由固件限矩兜底）——日志中 warn + CSV 字段 `guard_violations`，出现后应回放分析，不得忽略。
 
-## 8. 日志
+## 9. 日志
 
-State_HugWBC 每 50 策略 tick（约 1 Hz）在策略线程输出：tick、推理耗时 ms、g/相位/时钟、cmd_vx、standing、raw/hybrid 样本、臂参考 pitch、守护触发数、SDK 目标样本；构造时打印包名、checkpoint SHA、policy SHA、IMU 源与命令；退出原因必记。完整逐 tick 数值走离线回放路径（hugwbc_offline + verify_hugwbc）。
+- **逐 tick CSV**（`log/hugwbc_ticks_<epoch>.csv`，`tick_log: true` 默认开，策略线程写入）：字段全列见 §7 末段；sim2real 分析以该文件为准。
+- **1 Hz 控制台**（策略线程，每 50 tick）：tick、推理耗时 ms、g/相位/时钟、cmd_vx、standing、raw/hybrid 样本、臂参考 pitch、limited/violated、SDK 目标样本。
+- **生命周期**：构造打印包名、checkpoint SHA、policy SHA、IMU 源与命令；退出原因必记；guard_violations>0 即 warn。

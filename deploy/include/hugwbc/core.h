@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 
 namespace hugwbc {
@@ -143,6 +144,9 @@ struct Tick {
     Motors sdk_targets{};      // 23 policy targets + 6 wrist hold targets
     std::array<float, ARMS> arm_reference{};  // rad, arm_model_indices order
     int limited_count = 0;     // deploy-side guard activations this tick
+    int guard_violations = 0;  // constraint sets with an EMPTY intersection (F5):
+                               // target fell back to the position bound and the
+                               // torque guard could NOT be honoured
     std::uint64_t index = 0;   // policy tick counter since reset
 };
 
@@ -196,7 +200,9 @@ public:
         }
 
         if (seeded_) {
-            std::copy_backward(history_.begin(), history_.end() - OBS, history_.end());
+            // Training ObservationBuffer.insert: drop the OLDEST frame, shift
+            // newer frames toward index 0, append the new frame at the end.
+            std::copy(history_.begin() + OBS, history_.end(), history_.begin());
             std::copy(frame.obs.begin(), frame.obs.end(), history_.end() - OBS);
         } else {
             for (int h = 0; h < HIST; ++h)
@@ -250,12 +256,15 @@ public:
             tick.q_target[i] = cfg_.default_q[i] + cfg_.action_scale[i] * tick.clipped_action[i];
         }
 
-        // Map to SDK motors and fill the six wrist hold targets.
+        // Map to SDK motors and fill the six wrist hold targets (wrist_target
+        // is SDK-indexed, same convention as the loader).
         Motors targets{};
         for (int i = 0; i < J; ++i) targets[cfg_.model_to_sdk[i]] = tick.q_target[i];
-        for (int w = 0; w < WRISTS; ++w) targets[cfg_.wrist_sdk_indices[w]] = cfg_.wrist_target[w];
+        for (int w = 0; w < WRISTS; ++w)
+            targets[cfg_.wrist_sdk_indices[w]] = cfg_.wrist_target[cfg_.wrist_sdk_indices[w]];
 
         tick.limited_count = apply_guards(targets, s);
+        tick.guard_violations = guard_violations_;
         tick.sdk_targets = targets;
         last_hybrid_ = tick.hybrid_action;  // history observes the hybrid, pre-clip
         return tick;
@@ -266,7 +275,8 @@ public:
     std::uint64_t tick_index() const { return tick_index_; }
     bool seeded() const { return seeded_; }
 
-private:
+    // Pelvis-frame attitude/gyro/gravity from a snapshot, honouring imu_source.
+    // Public so the FSM tilt gate uses the SAME pelvis frame as the actor.
     void pelvis_frame(const Snapshot& s, Quat& orientation, Vec& angular_velocity,
                       Vec& projected_gravity) const {
         if (cfg_.imu_source == ImuSource::Pelvis) {
@@ -275,41 +285,68 @@ private:
         } else {
             // Torso IMU: recover the pelvis through the actual waist chain
             // yaw -> roll -> pitch (training URDF origins carry no rotation).
-            const float wy = s.q[12], wr = s.q[13], wp = s.q[14];
-            const Eigen::Quaternionf waist =
-                Eigen::AngleAxisf(wy, Vec::UnitZ()) * Eigen::AngleAxisf(wr, Vec::UnitX()) *
-                Eigen::AngleAxisf(wp, Vec::UnitY());
+            //     R_world<-pelvis = R_world<-torso * R_torso<-pelvis^T
+            const Eigen::Matrix3f rz =
+                Eigen::AngleAxisf(s.q[12], Vec::UnitZ()).toRotationMatrix();
+            const Eigen::Matrix3f rzrx =
+                rz * Eigen::AngleAxisf(s.q[13], Vec::UnitX()).toRotationMatrix();
+            const Eigen::Matrix3f r_torso_p =
+                rzrx * Eigen::AngleAxisf(s.q[14], Vec::UnitY()).toRotationMatrix();
             const Eigen::Matrix3f r_torso = s.orientation.toRotationMatrix();
-            const Eigen::Matrix3f r_pelvis = r_torso * waist.toRotationMatrix().transpose();
+            const Eigen::Matrix3f r_pelvis = r_torso * r_torso_p.transpose();
             orientation = Quat(r_pelvis);
-            const Vec w_world = r_torso * s.angular_velocity;
-            angular_velocity = r_pelvis.transpose() * w_world;
+            // Torso gyro is the torso ABSOLUTE angular velocity in torso
+            // coordinates. Pelvis gyro = torso rate - waist relative rate,
+            // both expressed in pelvis coordinates (the plain rotation alone
+            // leaks waist motion into the pelvis observation).
+            const Vec w_torso_in_pelvis = r_torso_p.transpose() * s.angular_velocity;
+            const Vec w_waist_rel =
+                Vec::UnitZ() * s.dq[12] + rz * (Vec::UnitX() * s.dq[13]) +
+                rzrx * (Vec::UnitY() * s.dq[14]);
+            angular_velocity = w_torso_in_pelvis - w_waist_rel;
         }
         orientation.normalize();
         projected_gravity = orientation.toRotationMatrix().transpose() * Vec(0.f, 0.f, -1.f);
     }
 
+private:
     // Deployment-side protections documented in the plan (training computes
-    // tau = clip(Kp*(q*-q) - Kd*dq, +/-tau): bound the position target so the
-    // requested torque at the CURRENT measurement stays inside the training
-    // saturation. Wrists have no trained parameters and get no torque guard.
+    // tau = clip(Kp*(q*-q) - Kd*dq, +/-tau): intersect the position, optional
+    // speed and torque-feasible intervals. When the intersection is EMPTY the
+    // target falls back to the position bound, the tick reports
+    // guard_violations, and the state logs it - the guard is NOT silently
+    // assumed successful (firmware torque saturation is the remaining
+    // protection, mirroring the training-side torque clip). Wrists have no
+    // trained parameters and get no torque guard.
     int apply_guards(Motors& targets, const Snapshot& s) {
         int limited = 0;
+        guard_violations_ = 0;
         for (int i = 0; i < J; ++i) {
             const int id = cfg_.model_to_sdk[i];
             float desired = targets[id];
-            desired = std::clamp(desired, cfg_.lower[i] + 0.01f, cfg_.upper[i] - 0.01f);
+            float lo = cfg_.lower[i] + 0.01f, hi = cfg_.upper[i] - 0.01f;
             if (cfg_.max_target_speed > 0.f && !first_target_) {
-                desired = std::clamp(desired, last_target_[id] - cfg_.max_target_speed * cfg_.dt,
-                                     last_target_[id] + cfg_.max_target_speed * cfg_.dt);
+                lo = std::max(lo, last_target_[id] - cfg_.max_target_speed * cfg_.dt);
+                hi = std::min(hi, last_target_[id] + cfg_.max_target_speed * cfg_.dt);
             }
             if (cfg_.torque_guard) {
                 const float center = s.q[id] + cfg_.kd[i] * s.dq[id] / cfg_.kp[i];
                 const float radius = cfg_.torque_limit[i] / cfg_.kp[i];
-                desired = std::clamp(desired, center - radius, center + radius);
-                desired = std::clamp(desired, cfg_.lower[i] + 0.01f, cfg_.upper[i] - 0.01f);
+                lo = std::max(lo, center - radius);
+                hi = std::min(hi, center + radius);
             }
-            if (std::abs(desired - targets[id]) > 1e-5f) ++limited;
+            if (lo <= hi) {
+                const float bounded = std::clamp(desired, lo, hi);
+                if (std::abs(bounded - desired) > 1e-5f) ++limited;
+                desired = bounded;
+            } else {
+                // Undefined protection state: keep the position bound, report.
+                const float bounded = std::clamp(desired, cfg_.lower[i] + 0.01f,
+                                                 cfg_.upper[i] - 0.01f);
+                if (std::abs(bounded - desired) > 1e-5f) ++limited;
+                desired = bounded;
+                ++guard_violations_;
+            }
             targets[id] = desired;
             last_target_[id] = desired;
         }
@@ -328,6 +365,7 @@ private:
     Motors last_target_{};
     float g_ = 0;
     std::uint64_t tick_index_ = 0;
+    int guard_violations_ = 0;
     bool seeded_ = false, first_target_ = true;
 };
 }  // namespace hugwbc

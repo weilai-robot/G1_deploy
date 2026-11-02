@@ -152,8 +152,11 @@ def main():
     for item in packages:
         package, task = item if isinstance(item, tuple) else (item, None)
         if task is None:
-            task = package.name if package.name in EXPECTED["checkpoint_sha256"] else None
-            if task is None:
+            # Package folders are r41/r42 (the config policy_dir); the identity
+            # keys are the training task names g1r41/g1r42. Accept both spellings.
+            name = package.name
+            task = ("g1" + name) if name in ("r41", "r42") else name
+            if task not in EXPECTED["checkpoint_sha256"]:
                 raise SystemExit(f"FAILED: cannot infer task variant from {package}")
         check_package(package.resolve(), task)
 

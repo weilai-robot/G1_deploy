@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Print the package-checker commands required by a deploy FSM config.
 
-Stdout lines are '<script> [args...]':
-  check_beyondmimic_package.py [package]  when BeyondMimic is enabled
-  check_hugwbc_package.py [package]       per HugWBC policy_dir
+Stdout lines are TAB-separated '<script>\\t<package>':
+  check_beyondmimic_package.py  when BeyondMimic is enabled
+  check_hugwbc_package.py       per HugWBC policy_dir
 Configs enabling neither (e.g. the default Velocity config) print nothing.
 policy_dir is resolved relative to the robot project directory (the parent of
-the config directory), matching param::proj_dir in the C++ loader.
+the config directory), matching param::proj_dir in the C++ loader. The build
+script splits on the tab, so paths keep their exact characters.
 """
 import sys
 from pathlib import Path
@@ -30,12 +31,12 @@ def main():
         if state_type == "BeyondMimic":
             package = project_dir / state_cfg.get(
                 "policy_dir", "config/policy/beyondmimic/dance_zui")
-            print(f"check_beyondmimic_package.py {package.resolve()}")
+            print(f"check_beyondmimic_package.py\t{package.resolve()}")
         elif state_type == "HugWBC":
             if "policy_dir" not in state_cfg:
                 raise SystemExit(f"FSM '{name}' has no policy_dir")
             package = (project_dir / state_cfg["policy_dir"]).resolve()
-            print(f"check_hugwbc_package.py {package}")
+            print(f"check_hugwbc_package.py\t{package}")
 
 
 if __name__ == "__main__":
