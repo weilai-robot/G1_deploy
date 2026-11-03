@@ -1,0 +1,58 @@
+{
+  "verifiedAt": "2026-11-03T02:06:36.547Z",
+  "files": [
+    {
+      "file": "deploy/include/beyondmimic/core.h",
+      "sha256": "c987db658e89ab391fc33795f10cc512977bfe9e6809ae7909819d5c9ddb8b69",
+      "passed": true
+    },
+    {
+      "file": "deploy/include/beyondmimic/package.h",
+      "sha256": "d68cb1cebd448f09f778fde5355c858104f52d3901c3339ba0048cf346af953d",
+      "passed": true
+    },
+    {
+      "file": "deploy/include/beyondmimic/cyclic.h",
+      "sha256": "85b8ad6a38cb4dad007d3059013df168af059f10bd12eab408828485e334e5fe",
+      "passed": true
+    },
+    {
+      "file": "deploy/robots/g1_29dof/src/State_BeyondMimicWalk.cpp",
+      "sha256": "3169a824f907a09798a689c17c159a0a17fc433a58b741b4518172dc9f457473",
+      "passed": true
+    },
+    {
+      "file": "deploy/tools/beyondmimic_offline.cpp",
+      "sha256": "28d2ece00a22e2a0f852d2ead9635bf16bb461501ef46b57501eca95407773b3",
+      "passed": true
+    },
+    {
+      "file": "deploy/tools/beyondmimic_walk_probe.cpp",
+      "sha256": "b19da8a95652e7482b8cecaa6e34eb33432f2752c7d1932a112ebf2a53eebb80",
+      "passed": true
+    },
+    {
+      "file": "tools/check_beyondmimic_walk_package.py",
+      "sha256": "7c3681cc70579d482deff4315e5f272eea2854c3c932cc2b661c1270c8445721",
+      "passed": true
+    },
+    {
+      "file": "tools/import_beyondmimic_walk_models.py",
+      "sha256": "885770e0fb7be67af666931ff66a60609b8d4c3bc5a42e3bfb931014b170f180",
+      "passed": true
+    }
+  ],
+  "allMatch": true,
+  "lineEndingPolicy": "Compare UTF-8 source with CRLF normalized to LF for Git/Linux equivalence; raw snapshot hashes remain in build-report.json",
+  "normalized_lf_sha256": {
+    "deploy/include/beyondmimic/core.h": "dcb12f0662c558397ce73730439ffc0951a17463b102c5cb873aa02b9a37def2",
+    "deploy/include/beyondmimic/package.h": "d68cb1cebd448f09f778fde5355c858104f52d3901c3339ba0048cf346af953d",
+    "deploy/include/beyondmimic/cyclic.h": "5b6a4593ad808b225ccbec9fb82b47d7a48ff88bbfb023dae1d77e0357b5b538",
+    "deploy/robots/g1_29dof/src/State_BeyondMimicWalk.cpp": "3169a824f907a09798a689c17c159a0a17fc433a58b741b4518172dc9f457473",
+    "deploy/tools/beyondmimic_offline.cpp": "28d2ece00a22e2a0f852d2ead9635bf16bb461501ef46b57501eca95407773b3",
+    "deploy/tools/beyondmimic_walk_probe.cpp": "37eb937b709ca2bb1df3acc0a5837f184aed9aaedc5d4d82e8c30ed807050882",
+    "tools/check_beyondmimic_walk_package.py": "7c3681cc70579d482deff4315e5f272eea2854c3c932cc2b661c1270c8445721",
+    "tools/import_beyondmimic_walk_models.py": "885770e0fb7be67af666931ff66a60609b8d4c3bc5a42e3bfb931014b170f180"
+  },
+  "trained_target_core_lf_matches": true
+}

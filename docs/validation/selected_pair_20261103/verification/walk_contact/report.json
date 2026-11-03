@@ -1,0 +1,53 @@
+{
+  "model_id": "fluid_7996_r29",
+  "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+  "policy_sha256": "ccea2ebef8145ec25d21a3b9cf938638367cf9c7662bf927ac97680c6eb704f9",
+  "completed_protocol": true,
+  "completed_steps": 4100,
+  "policy_dt": 0.02,
+  "termination_reason": null,
+  "quantitative_pass": false,
+  "failed_gates": {
+    "stand_initial": [
+      "stop_speed",
+      "stop_yaw_rate"
+    ],
+    "stop_final": [
+      "stop_yaw_rate"
+    ]
+  },
+  "cpp_inference": {
+    "passed": true,
+    "samples": 64,
+    "max_abs_action_error": 5.960464477539062e-7,
+    "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+    "policy_sha256": "ccea2ebef8145ec25d21a3b9cf938638367cf9c7662bf927ac97680c6eb704f9"
+  },
+  "proprio_contract": {
+    "model_id": "fluid_7996_r29",
+    "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+    "observation_dim": 154,
+    "actor_state_source": "C++ IMU/encoders/reference only; no truth position or linear velocity",
+    "leg_odometry_used": false,
+    "position_error_guard_used": false,
+    "target_limits": "live C++ unchanged",
+    "real_robot_tested": false,
+    "observation_max_abs_error": 2.1019972050798086e-7,
+    "observation_samples": 64,
+    "world_position_velocity_counterfactual": "passed",
+    "truth_packet_rejection": "passed",
+    "scope": "interface only; no learned behavior claim"
+  },
+  "comparison_to_original_loop_csv_max_abs_error": 0,
+  "original_loop_csv": "/home/robot/F1_train/yanni/beyondmimic_deploy_probe/contact-auditfix-r29-final/evaluation/shared_cpp/turn_support_0/joints.csv",
+  "actual_csv_sha256": "a191e12455e7797953596b211a0b6cc0ab2d5f008be2fd1737d795a3854deb05",
+  "stop_responses": {
+    "stop_hold": 1.1600000000000037,
+    "stop_final": null
+  },
+  "real_robot_tested": false,
+  "robot_commands_sent": false,
+  "overall_goal_accepted": false,
+  "actual_state_data_archive": "oma-runs/beyondmimic-g1/.oma/deployment/20261103-selected-pair/actual-states/walk_contact.csv.gz",
+  "full_verification_archive": "oma-runs/beyondmimic-g1/.oma/deployment/20261103-selected-pair/verification-results.tar.gz"
+}

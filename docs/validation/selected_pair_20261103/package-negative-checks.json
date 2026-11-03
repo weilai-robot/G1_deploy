@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-11-03T02:07:40.412Z",
+  "tests": [
+    {
+      "case": "wrong_selected_checkpoint",
+      "rejected": true
+    },
+    {
+      "case": "wrong_fsm_model_binding",
+      "rejected": true
+    },
+    {
+      "case": "implicit_package_overwrite",
+      "rejected": true
+    }
+  ]
+}

@@ -1,95 +1,63 @@
 #!/usr/bin/env python3
-"""Import the two frozen loop artifacts; robot runtime needs neither Torch nor training code."""
-import argparse
-import hashlib
-import json
+"""Import the owner-selected154 pair from its checksummed archive; robot needs no Torch."""
+import argparse,hashlib,json,os,shutil,subprocess,sys,tempfile
+from datetime import datetime,timezone
 from pathlib import Path
-import shutil
-import struct
+import torch,yaml
 
-import numpy as np
-import torch
-import yaml
-
-
-def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
+FILES=('policy.onnx','gait.bin','deploy.yaml','manifest.json')
+def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+def inside(base,rel):
+ p=(base/rel).resolve()
+ if not p.is_relative_to(base.resolve()):raise ValueError('Archive path escapes selected archive')
+ return p
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--archive',type=Path,required=True)
-    p.add_argument('--output',type=Path,default=Path(__file__).resolve().parents[1]/'deploy/robots/g1_29dof/config/policy/beyondmimic')
-    a=p.parse_args()
-    variants=[('baseline_exp003_model3998','walk_baseline'),('contact_exp004_model5997','walk_contact')]
-    for source,name in variants:
-        archive=a.archive/source
-        original=json.loads((archive/'model_manifest.json').read_text(encoding='utf-8'))
-        checkpoint=archive/original['checkpoint']
-        if sha(checkpoint)!=original['checkpointSHA256']:
-            raise ValueError('Checkpoint hash differs from frozen owner archive')
-        native=torch.load(checkpoint,map_location='cpu',weights_only=True)['infos']['oma_runtime']
-        if native['format']!='beyondmimic_g1_velocity_runtime_v1':
-            raise ValueError('Not a velocity-command model')
-        config=yaml.safe_load((archive/'offline_fixture/deploy.yaml').read_text(encoding='utf-8'))
-        if config['joint_names']!=native['joint_names'] or config['body_names']!=native['tracked_body_names']:
-            raise ValueError('Deployment articulation order differs from checkpoint')
-        for key in ['default_joint_pos','kp','kd','action_scale','effort_limit']:
-            np.testing.assert_array_equal(np.asarray(config[key],np.float32),native['control'][key].numpy())
-        out=a.output/name
-        out.mkdir(parents=True,exist_ok=True)
-        expected=original['onnxExportVerification']['policy_sha256']
-        if sha(archive/'policy.onnx')!=expected:
-            raise ValueError('Frozen ONNX hash mismatch')
-        shutil.copyfile(archive/'policy.onnx',out/'policy.onnx')
-        motion=native['motion'];n=int(motion['cycle_frames'][0]);fps=float(motion['fps'][0])
-        bodies=[native['body_names'].index(x) for x in config['body_names']]
-        q=motion['joint_pos'].numpy();dq=motion['joint_vel'].numpy()
-        pos=motion['body_pos_w'][:,bodies].numpy();quat=motion['body_quat_w'][:,bodies].numpy()
-        records=np.concatenate([q,dq,pos.reshape(n,-1),quat.reshape(n,-1)],axis=1).astype('<f4')
-        support=motion['support_frames'].numpy().astype('<u4')
-        if records.shape!=(n,156) or not np.isfinite(records).all() or len(support)<2:
-            raise ValueError('Invalid exact cyclic reference')
-        nominal=float(motion['nominal_reference_speed_mps'][0]);dt=native['policy_dt']
-        with (out/'gait.bin').open('wb') as f:
-            f.write(struct.pack('<8sIIIIffff',b'BMGCYC1\0',n,29,14,len(support),dt,fps,nominal,native['phase_acceleration']))
-            f.write(np.asarray(native['command_limits'],dtype='<f4').tobytes())
-            f.write(support.tobytes());f.write(records.tobytes())
-        config.update({'model_id':source,'controller_mode':'velocity_cyclic_v1','reference':'gait.bin',
-                       'armature':native['control']['armature'].tolist(),
-                       'cyclic_reference':{'format':'BMGCYC1','frames':n,'support_frames':support.tolist(),
-                           'nominal_speed_mps':nominal,'command_limits':native['command_limits'],
-                           'phase_acceleration':native['phase_acceleration'],'initial_support_index':0},
-                       'training_command_curriculum':native['training_command_curriculum']})
-        (out/'deploy.yaml').write_text(yaml.safe_dump(config,sort_keys=False),encoding='utf-8',newline='\n')
-        first_q=records[int(support[0]),:29]
-        sdk_q=np.zeros(29);sdk_kp=np.zeros(29);sdk_kd=np.zeros(29)
-        sdk_q[config['sdk_indices']]=first_q
-        sdk_kp[config['sdk_indices']]=config['kp'];sdk_kd[config['sdk_indices']]=config['kd']
-        manifest={'format':'beyondmimic_velocity_package_v1','model_id':source,
-                  'source_checkpoint':original['checkpoint'],'checkpoint_sha256':original['checkpointSHA256'],
-                  'source_commit':original['sourceCommit'],'trained_reference_npz_sha256':native['reference_sha256'],
-                  'policy_sha256':sha(out/'policy.onnx'),'gait_sha256':sha(out/'gait.bin'),
-                  'deploy_yaml_sha256':sha(out/'deploy.yaml'),'frames':n,'fps':fps,
-                  'normalizer_embedded':True,'normalizer_epsilon':native['normalizer_epsilon'],
-                  'onnx_parity':original['onnxExportVerification'],
-                  'unsupported_commands':['backward','lateral','in_place_turn'],
-                  'reference_scope':'Infinite cyclic gait, command-root integration and support-aware braking; not finite reference playback',
-                  'real_robot_tested':False}
-        (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')
-        # Retain the repository's existing safety limits; deadzone is an explicit input setting.
-        fsm={'FSM':{'_':{'Passive':{'id':1},'FixStand':{'id':2},'BeyondMimicWalk':{'id':202,'type':'BeyondMimicWalk'}},
-             'Passive':{'transitions':{'FixStand':'LT + up.on_pressed'},'mode':[1]*29,'kd':[3.0]*29},
-             'FixStand':{'transitions':{'Passive':'LT + B.on_pressed','BeyondMimicWalk':'RB + X.on_pressed'},
-                         'kp':sdk_kp.tolist(),'kd':sdk_kd.tolist(),'ts':[0,3],'qs':[[],sdk_q.tolist()]},
-             'BeyondMimicWalk':{'transitions':{'Passive':'LT + B.on_pressed'},
-                 'policy_dir':'config/policy/beyondmimic/'+name,'initial_support_index':0,
-                 'command_deadzone':0.1,'minimum_speed_scale':native['training_command_curriculum']['speed_scale_range'][0],
-                 'max_start_error':0.25,'max_tilt':0.85,'max_target_speed':8.0,'max_anchor_error':0.35,
-                 'log_directory':'log/beyondmimic_walk'}}}
-        (a.output.parents[1]/('beyondmimic_walk'+('_contact' if name=='walk_contact' else '')+'.yaml')).write_text(yaml.safe_dump(fsm,sort_keys=False),encoding='utf-8',newline='\n')
-        print(json.dumps({'model':name,'checkpoint_sha256':manifest['checkpoint_sha256'],'gait_sha256':manifest['gait_sha256']}))
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--archive',type=Path,required=True)
+ p.add_argument('--replace',action='store_true',help='Explicitly replace the two existing walking slots after staging both packages')
+ a=p.parse_args();root=Path(__file__).resolve().parents[1];robot=root/'deploy/robots/g1_29dof';cfg=robot/'config';base=cfg/'policy/beyondmimic'
+ archive=a.archive.resolve();pair=json.loads((archive/'pair.json').read_text(encoding='utf8'))
+ if pair.get('format')!='beyondmimic_owner_selected_proprio_pair_v1':raise ValueError('Expected owner-selected154 pair archive')
+ entries=pair['models'];slots={'walk_baseline':'beyondmimic_walk.yaml','walk_contact':'beyondmimic_walk_contact.yaml'}
+ if len(entries)!=2 or {e['package']for e in entries}!=set(slots):raise ValueError('Exactly stable/fluid walking slots required')
+ if not a.replace and any((base/e['package']).exists()for e in entries):raise FileExistsError('Existing pair: require explicit --replace')
+ # Validate BOTH actual sources before creating or replacing a deployment artifact.
+ for e in entries:
+  f=inside(archive,e['checkpoint']);runtime=inside(archive,e['runtime_source'])
+  if sha(f)!=e['checkpoint_sha256']:raise ValueError('Selected checkpoint SHA mismatch')
+  c=torch.load(f,map_location='cpu',weights_only=True);n=c['infos']['oma_runtime']
+  if c.get('diagnostic_synthetic') or n['format']!='beyondmimic_g1_velocity_proprio_runtime_v1':raise ValueError('Actual154 checkpoint required')
+  if not all(torch.isfinite(v).all()for v in c['model_state_dict'].values()):raise ValueError('Nonfinite selected actor')
+  wanted=n['actor_observation_contract']['implementation_sha256']['utils/runtime_policy.py']
+  if hashlib.sha256(runtime.read_text(encoding='utf8').encode()).hexdigest()!=wanted:raise ValueError('Archived runtime source differs from actual checkpoint')
+  if not n.get('deployment_target_contract',{}).get('applied_to_native_action'):raise ValueError('Native deployed-target training contract required')
+  if e['fsm']!=slots[e['package']]:raise ValueError('Selected model slot/config mismatch')
+ base.mkdir(parents=True,exist_ok=True)
+ with tempfile.TemporaryDirectory(prefix='._selected_pair_',dir=base)as tmp:
+  stage=Path(tmp).resolve()
+  if not stage.is_relative_to(base.resolve()):raise ValueError('Staging path escapes policy directory')
+  index={'format':'beyondmimic_active_walk_pair_v1','real_robot_tested':False,'overall_goal_accepted':False,'models':[]}
+  for e in entries:
+   out=stage/e['package'];fsm=stage/e['fsm']
+   subprocess.run([sys.executable,str(root/'tools/export_beyondmimic_proprio.py'),'--checkpoint',str(inside(archive,e['checkpoint'])),'--runtime-source',str(inside(archive,e['runtime_source'])),'--model-id',e['model_id'],'--source-commit',e['source_commit'],'--output',str(out),'--fsm-output',str(fsm)],check=True,capture_output=True,text=True)
+   config=yaml.safe_load(fsm.read_text(encoding='utf8'));config['FSM']['BeyondMimicWalk']['policy_dir']='config/policy/beyondmimic/'+e['package'];fsm.write_text(yaml.safe_dump(config,sort_keys=False),encoding='utf8',newline='\n')
+   m=json.loads((out/'manifest.json').read_text());summary=json.loads(inside(archive,e['summary']).read_text(encoding='utf8'))
+   m.update(source_task_id=e['task_id'],source_experiment=e['experiment'],variant_role=e['label'],owner_characterization=e['owner_characterization'],owner_selected_for_comparison=True,offline_functional_pass_count=summary['quantitativePassed'],offline_functional_total=summary['total'],offline_contact_gates_all_passed=summary['qualityAllPassed'])
+   (out/'manifest.json').write_text(json.dumps(m,indent=2,ensure_ascii=False)+'\n',encoding='utf8',newline='\n')
+   index['models'].append({'package':e['package'],'model_id':e['model_id'],'label':e['label'],'owner_characterization':e['owner_characterization'],'checkpoint':e['checkpoint'].split('/')[-1],'checkpoint_sha256':e['checkpoint_sha256'],'source_task_id':e['task_id'],'source_experiment':e['experiment'],'source_commit':e['source_commit'],'fsm_config':'config/'+e['fsm'],'fsm_sha256':sha(fsm),'manifest_sha256':sha(out/'manifest.json'),'observation_dim':154})
+  # Keep overwritten files outside Git; all sources were validated before this point.
+  backup=archive/'deployment_backups'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ');backup.mkdir(parents=True)
+  for e in entries:
+   old=base/e['package']
+   if old.exists():
+    dest=backup/e['package'];dest.mkdir()
+    for name in FILES:shutil.copyfile(old/name,dest/name)
+   if (cfg/e['fsm']).exists():shutil.copyfile(cfg/e['fsm'],backup/e['fsm'])
+  for e in entries:
+   out=base/e['package'];out.mkdir(exist_ok=True)
+   for name in FILES:os.replace(stage/e['package']/name,out/name)
+   os.replace(stage/e['fsm'],cfg/e['fsm'])
+  (base/'walk_models.json').write_text(json.dumps(index,indent=2,ensure_ascii=False)+'\n',encoding='utf8',newline='\n')
+  print(json.dumps({'replaced':[e['model_id']for e in entries],'backup':str(backup),'robot_commands_sent':False},ensure_ascii=False))
 
-
-if __name__=='__main__':
-    main()
+if __name__=='__main__':main()

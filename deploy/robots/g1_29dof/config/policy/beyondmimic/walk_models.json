@@ -1,0 +1,37 @@
+{
+  "format": "beyondmimic_active_walk_pair_v1",
+  "real_robot_tested": false,
+  "overall_goal_accepted": false,
+  "models": [
+    {
+      "package": "walk_baseline",
+      "model_id": "stable_5997_r26",
+      "label": "5997 稳定版",
+      "owner_characterization": "脚步更稳，换步流畅度较低",
+      "checkpoint": "model_5997.pt",
+      "checkpoint_sha256": "ce9a5731f5957e4954604cc9543769988f45a4164e771b86fcf40313a19acc28",
+      "source_task_id": "TASK_20261102_078",
+      "source_experiment": "exp-20261102-004",
+      "source_commit": "4fb49d2355f6c5b7b94f289c73b449b504f3ebd3",
+      "fsm_config": "config/beyondmimic_walk.yaml",
+      "fsm_sha256": "c8bd5409a1fde26f3e0709af661e8c110366ee949aa9452f711f339b0d1440e6",
+      "manifest_sha256": "52e18f78d9ddca9a6eb50d9199136f39e02f0b377469924403b633853ee459a3",
+      "observation_dim": 154
+    },
+    {
+      "package": "walk_contact",
+      "model_id": "fluid_7996_r29",
+      "label": "7996 流畅版",
+      "owner_characterization": "步态更流畅，脚步稳定性较低",
+      "checkpoint": "model_7996.pt",
+      "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+      "source_task_id": "TASK_20261103_048",
+      "source_experiment": "exp-20261103-001",
+      "source_commit": "97ba46e13853e1975e5a4aabccabae7829b341e9",
+      "fsm_config": "config/beyondmimic_walk_contact.yaml",
+      "fsm_sha256": "bae811b211b3ed8ebb761b03f1fc816f859a46f0bd6e715d4bb20fc464c22f20",
+      "manifest_sha256": "aa67510206c5c2533cd570fccf6d614daa55e81f26b515b19bfd15d28838a5e4",
+      "observation_dim": 154
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "expId": "exp-20261103-001",
+  "taskId": "TASK_20261103_048",
+  "checkpoint": "model_7996.pt",
+  "completed": 7,
+  "quantitativePassed": 2,
+  "total": 7,
+  "runs": [
+    {
+      "name": "forward_support_0",
+      "completed": true,
+      "steps": 2900,
+      "dt": 0.02,
+      "quantitativePass": false,
+      "failed": {
+        "stand_initial": [
+          "stop_speed"
+        ],
+        "stop_hold": [
+          "stop_speed"
+        ]
+      },
+      "stopResponses": {
+        "stop_hold": null,
+        "stop_final": 1.0600000000000023
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\forward_support_0\\metrics.json"
+    },
+    {
+      "name": "forward_support_2",
+      "completed": true,
+      "steps": 2900,
+      "dt": 0.02,
+      "quantitativePass": false,
+      "failed": {
+        "stop_hold": [
+          "stop_speed"
+        ]
+      },
+      "stopResponses": {
+        "stop_hold": null,
+        "stop_final": 0.6000000000000014
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\forward_support_2\\metrics.json"
+    },
+    {
+      "name": "forward_support_4",
+      "completed": true,
+      "steps": 2900,
+      "dt": 0.02,
+      "quantitativePass": true,
+      "failed": {},
+      "stopResponses": {
+        "stop_hold": 1.2800000000000011,
+        "stop_final": 0.5600000000000023
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\forward_support_4\\metrics.json"
+    },
+    {
+      "name": "turn_support_0",
+      "completed": true,
+      "steps": 4100,
+      "dt": 0.02,
+      "quantitativePass": false,
+      "failed": {
+        "stand_initial": [
+          "stop_speed",
+          "stop_yaw_rate"
+        ],
+        "stop_final": [
+          "stop_yaw_rate"
+        ]
+      },
+      "stopResponses": {
+        "stop_hold": 1.1600000000000037,
+        "stop_final": null
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\turn_support_0\\metrics.json"
+    },
+    {
+      "name": "turn_support_2",
+      "completed": true,
+      "steps": 4100,
+      "dt": 0.02,
+      "quantitativePass": false,
+      "failed": {
+        "stop_final": [
+          "stop_speed",
+          "stop_yaw_rate"
+        ]
+      },
+      "stopResponses": {
+        "stop_hold": 1.6200000000000045,
+        "stop_final": null
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\turn_support_2\\metrics.json"
+    },
+    {
+      "name": "turn_support_4",
+      "completed": true,
+      "steps": 4100,
+      "dt": 0.02,
+      "quantitativePass": true,
+      "failed": {},
+      "stopResponses": {
+        "stop_hold": 1.2000000000000028,
+        "stop_final": 0.960000000000008
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\turn_support_4\\metrics.json"
+    },
+    {
+      "name": "supplementary_long_walk",
+      "completed": true,
+      "steps": 7100,
+      "dt": 0.02,
+      "quantitativePass": false,
+      "failed": {
+        "stand_initial": [
+          "stop_speed"
+        ]
+      },
+      "stopResponses": {
+        "stop_hold": 2.219999999999999,
+        "stop_final": 0.9399999999999977
+      },
+      "metrics": "evaluation\\final\\shared_cpp\\supplementary_long_walk\\metrics.json"
+    }
+  ],
+  "contactDiagnosticExactOriginalTelemetry": true,
+  "qualityChecks": [
+    {
+      "field": "left.contact_tangent_mean_mps",
+      "value": 0.013517114312423221,
+      "maximum": 0.01561280909734732,
+      "passed": true
+    },
+    {
+      "field": "left.contact_tangent_rms_mps",
+      "value": 0.06505153939305237,
+      "maximum": 0.06141444852253981,
+      "passed": false
+    },
+    {
+      "field": "right.contact_tangent_mean_mps",
+      "value": 0.013679219375304006,
+      "maximum": 0.01934808709481401,
+      "passed": true
+    },
+    {
+      "field": "right.contact_tangent_rms_mps",
+      "value": 0.05641660820336935,
+      "maximum": 0.08466087983327528,
+      "passed": true
+    }
+  ],
+  "qualityAllPassed": false,
+  "speedRippleCheck": {
+    "source_csv": "D:\\工作资料\\02机器人\\01F1项目\\oma-runs\\beyondmimic-g1\\.oma\\experiments\\exp-20261103-001\\evaluation\\final\\gait_diagnostics\\replay\\joints.csv",
+    "csv_sha256": "cf2177d272be279b7890204cc21d487f43908237430b0ce31a4bba91b2bd12a3",
+    "samples": 950,
+    "formula": "sqrt(mean((actual_body_vx - raw_vx)**2)) over same post-settle straight stage",
+    "value": 0.14290144433351623,
+    "parent": 0.15256297879323313,
+    "maximum": 0.15256297879323313,
+    "passed": true,
+    "body_velocity_std_about_mean_mps": 0.1283509570315006
+  },
+  "ownerVideoFeedback": {
+    "recordedAt": "2026-11-03T01:45:50.177Z",
+    "checkpoint": "model_7996.pt",
+    "taskId": "TASK_20261103_048",
+    "sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+    "comparisonCheckpoint": "exp-20261102-004/model_5997.pt",
+    "answer": "5997脚步更稳，但步态流畅度差一些，7996步态更流畅，但是脚步不太稳；保留两个模型并替换部署仓库原模型",
+    "interpretation": {
+      "model5997": "stable-foot variant",
+      "model7996": "more-fluid variant with less stable foot placement",
+      "retainBoth": true,
+      "ownerAuthorizedDeploymentPackaging": true,
+      "overallGoalAccepted": false,
+      "realRobotOperationAuthorized": false
+    },
+    "scope": "Owner explicitly requests both new154 models in beyondmimic deployment branch; not permission to operate real robot or waive failed frozen behavior gates"
+  },
+  "overallAccepted": false,
+  "baselineReplaced": false
+}

@@ -28,6 +28,7 @@ State_BeyondMimicWalk::State_BeyondMimicWalk(int state,std::string name):FSMStat
     max_start_error_=cfg["max_start_error"].as<float>(0.25f);
     max_tilt_=cfg["max_tilt"].as<float>(0.85f);
     max_target_speed_=cfg["max_target_speed"].as<float>(8.0f);
+    beyondmimic::validate_trained_target_rate(package,max_target_speed_);
     max_anchor_error_=cfg["max_anchor_error"].as<float>(0.35f);
     if(!(max_start_error_>0 && max_start_error_<0.8f) ||
        !(max_tilt_>0 && max_tilt_<1.5f) || !(max_target_speed_>0 && max_target_speed_<=20) ||

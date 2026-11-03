@@ -1,8 +1,8 @@
-format: beyondmimic_g1_160_v1
+format: beyondmimic_g1_154_v1
 model: policy.onnx
 reference: gait.bin
 step_dt: 0.02
-observation_dim: 160
+observation_dim: 154
 action_dim: 29
 joint_names:
 - left_hip_pitch_joint
@@ -492,8 +492,8 @@ kinematics:
 normalizer:
   embedded: true
   epsilon: 0.01
-model_id: baseline_exp003_model3998
-controller_mode: velocity_cyclic_v1
+model_id: stable_5997_r26
+controller_mode: velocity_cyclic_proprio_v1
 armature:
 - 0.010177520103752613
 - 0.010177520103752613
@@ -559,3 +559,299 @@ training_command_curriculum:
   - 4.0
   initial_go_probability: 0.5
   episode_length_s: 20.0
+deployment_target_contract:
+  version: shared_cpp_target_limits_v1
+  joint_names:
+  - left_hip_pitch_joint
+  - right_hip_pitch_joint
+  - waist_yaw_joint
+  - left_hip_roll_joint
+  - right_hip_roll_joint
+  - waist_roll_joint
+  - left_hip_yaw_joint
+  - right_hip_yaw_joint
+  - waist_pitch_joint
+  - left_knee_joint
+  - right_knee_joint
+  - left_shoulder_pitch_joint
+  - right_shoulder_pitch_joint
+  - left_ankle_pitch_joint
+  - right_ankle_pitch_joint
+  - left_shoulder_roll_joint
+  - right_shoulder_roll_joint
+  - left_ankle_roll_joint
+  - right_ankle_roll_joint
+  - left_shoulder_yaw_joint
+  - right_shoulder_yaw_joint
+  - left_elbow_joint
+  - right_elbow_joint
+  - left_wrist_roll_joint
+  - right_wrist_roll_joint
+  - left_wrist_pitch_joint
+  - right_wrist_pitch_joint
+  - left_wrist_yaw_joint
+  - right_wrist_yaw_joint
+  joint_lower:
+  - -2.5307
+  - -2.5307
+  - -2.618
+  - -0.5236
+  - -2.9671
+  - -0.52
+  - -2.7576
+  - -2.7576
+  - -0.52
+  - -0.087267
+  - -0.087267
+  - -3.0892
+  - -3.0892
+  - -0.87267
+  - -0.87267
+  - -1.5882
+  - -2.2515
+  - -0.2618
+  - -0.2618
+  - -2.618
+  - -2.618
+  - -1.0472
+  - -1.0472
+  - -1.972222054
+  - -1.972222054
+  - -1.614429558
+  - -1.614429558
+  - -1.614429558
+  - -1.614429558
+  joint_upper:
+  - 2.8798
+  - 2.8798
+  - 2.618
+  - 2.9671
+  - 0.5236
+  - 0.52
+  - 2.7576
+  - 2.7576
+  - 0.52
+  - 2.8798
+  - 2.8798
+  - 2.6704
+  - 2.6704
+  - 0.5236
+  - 0.5236
+  - 2.2515
+  - 1.5882
+  - 0.2618
+  - 0.2618
+  - 2.618
+  - 2.618
+  - 2.0944
+  - 2.0944
+  - 1.972222054
+  - 1.972222054
+  - 1.614429558
+  - 1.614429558
+  - 1.614429558
+  - 1.614429558
+  kp:
+  - 40.179237365722656
+  - 40.179237365722656
+  - 40.179237365722656
+  - 99.09842681884766
+  - 99.09842681884766
+  - 28.501245498657227
+  - 40.179237365722656
+  - 40.179237365722656
+  - 28.501245498657227
+  - 99.09842681884766
+  - 99.09842681884766
+  - 14.250622749328613
+  - 14.250622749328613
+  - 28.501245498657227
+  - 28.501245498657227
+  - 14.250622749328613
+  - 14.250622749328613
+  - 28.501245498657227
+  - 28.501245498657227
+  - 14.250622749328613
+  - 14.250622749328613
+  - 14.250622749328613
+  - 14.250622749328613
+  - 14.250622749328613
+  - 14.250622749328613
+  - 16.77832794189453
+  - 16.77832794189453
+  - 16.77832794189453
+  - 16.77832794189453
+  kd:
+  - 2.557889699935913
+  - 2.557889699935913
+  - 2.557889699935913
+  - 6.308801651000977
+  - 6.308801651000977
+  - 1.8144457340240479
+  - 2.557889699935913
+  - 2.557889699935913
+  - 1.8144457340240479
+  - 6.308801651000977
+  - 6.308801651000977
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 1.8144457340240479
+  - 1.8144457340240479
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 1.8144457340240479
+  - 1.8144457340240479
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 0.9072228670120239
+  - 1.0681414604187012
+  - 1.0681414604187012
+  - 1.0681414604187012
+  - 1.0681414604187012
+  effort_limit:
+  - 88.0
+  - 88.0
+  - 88.0
+  - 139.0
+  - 139.0
+  - 50.0
+  - 88.0
+  - 88.0
+  - 50.0
+  - 139.0
+  - 139.0
+  - 25.0
+  - 25.0
+  - 50.0
+  - 50.0
+  - 25.0
+  - 25.0
+  - 50.0
+  - 50.0
+  - 25.0
+  - 25.0
+  - 25.0
+  - 25.0
+  - 25.0
+  - 25.0
+  - 5.0
+  - 5.0
+  - 5.0
+  - 5.0
+  default_joint_pos:
+  - -0.31200000643730164
+  - -0.31200000643730164
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.6690000295639038
+  - 0.6690000295639038
+  - 0.20000000298023224
+  - 0.20000000298023224
+  - -0.3630000054836273
+  - -0.3630000054836273
+  - 0.20000000298023224
+  - -0.20000000298023224
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.6000000238418579
+  - 0.6000000238418579
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  action_scale:
+  - 0.5475464463233948
+  - 0.5475464463233948
+  - 0.5475464463233948
+  - 0.3506614565849304
+  - 0.3506614565849304
+  - 0.4385773241519928
+  - 0.5475464463233948
+  - 0.5475464463233948
+  - 0.4385773241519928
+  - 0.3506614565849304
+  - 0.3506614565849304
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.4385773241519928
+  - 0.07450087368488312
+  - 0.07450087368488312
+  - 0.07450087368488312
+  - 0.07450087368488312
+  policy_dt: 0.02
+  max_target_speed: 8.0
+  joint_margin: 0.01
+  max_abs_raw_action: 100.0
+  changed_tolerance: 1.0e-05
+  source:
+    deploy_commit: a4e7f8b571501931e6a705326da9eac00cf30244
+    deploy_yaml_sha256: b8e5ee85a9375fd6d0d4578e69e95f0c9ce4b75ab5818e6f3613da189127d967
+    core_sha256: dcb12f0662c558397ce73730439ffc0951a17463b102c5cb873aa02b9a37def2
+    scalar_source: Core::targets default max_speed8.0f, margin0.01f, raw abs100, clipped
+      eps1e-5f; exact native/deploy settings, not hardware estimates
+  contract_sha256: 048394e44985bc8fdf71dce98fcf782c5841b3946af653c1755842a8335d7b52
+  implementation_sha256:
+    utils/deployment_limits.py: 3e6f3152a31399578dfb12487af93090ba2df5e890c1b6b74f8608c158b18f80
+    tasks/tracking/mdp/deployment_actions.py: 8a505aab1522252bb5b1f408f071c4ed143e0a8b7b9e8e2aea86e24d73b97bb7
+    tasks/tracking/config/g1/deploy_proprio_env_cfg.py: 9594f18b6b515a4ac5c8039c14b578f358a1b9c4a34aff44fa1db15cdbccac66
+  native_action_class: DeployableJointPositionAction
+  applied_to_native_action: true
+actor_observation_contract:
+  version: beyondmimic_actor_proprio_v1
+  terms:
+  - command
+  - motion_anchor_ori_b
+  - base_ang_vel
+  - joint_pos
+  - joint_vel
+  - actions
+  term_dimensions:
+  - 58
+  - 6
+  - 3
+  - 29
+  - 29
+  - 29
+  dimension: 154
+  history_length: 1
+  requires_position_estimate: false
+  requires_linear_velocity_estimate: false
+  native_active_terms:
+  - command
+  - motion_anchor_ori_b
+  - base_ang_vel
+  - joint_pos
+  - joint_vel
+  - actions
+  native_actor_shape:
+  - 154
+  native_critic_shape:
+  - 286
+  passed: true
+  implementation_sha256:
+    utils/actor_observations.py: 9dec13fdef7c68117cbe4bac7e5616fcc266f3b4b18c0819d4cb9059241dc2ba
+    utils/runtime_policy.py: 2cb9a67120cd101c5b238a59e3708491e10050cf8ddc796ddcd47a8e20ff4b9c
+    tasks/tracking/config/g1/proprio_velocity_env_cfg.py: 4399f7a4d9b1530b0d6edb1e770001cb5f77cf47209d44aa287f5495e18118d0

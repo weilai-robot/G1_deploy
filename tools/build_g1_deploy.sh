@@ -28,9 +28,12 @@ fi
 python3 "$repo_dir/tools/check_beyondmimic_package.py"
 python3 "$repo_dir/tools/check_beyondmimic_walk_package.py"
 cmake -S "$repo_dir/deploy/robots/g1_29dof" -B "$repo_dir/deploy/robots/g1_29dof/build" \
+  -DBUILD_ROBOT_CONTROLLER=ON -DBUILD_BEYONDMIMIC_OFFLINE=ON \
   -DCMAKE_BUILD_TYPE=Release -DONNXRUNTIME_ROOT="$runtime_dir" \
   -DONNXRUNTIME_INCLUDE_DIR="$runtime_dir/include" \
   -DONNXRUNTIME_LIBRARY="$runtime_dir/lib/libonnxruntime.so.$runtime_version" \
   -DCMAKE_PREFIX_PATH="${UNITREE_SDK_PREFIX:-/usr/local}"
 cmake --build "$repo_dir/deploy/robots/g1_29dof/build" -j "${BUILD_JOBS:-2}"
+"$repo_dir/deploy/robots/g1_29dof/build/beyondmimic_offline" --check-walk-config "$repo_dir/deploy/robots/g1_29dof/config/beyondmimic_walk.yaml"
+"$repo_dir/deploy/robots/g1_29dof/build/beyondmimic_offline" --check-walk-config "$repo_dir/deploy/robots/g1_29dof/config/beyondmimic_walk_contact.yaml"
 echo "Built controller; no robot commands were sent. Walking models: see docs/G1_BeyondMimic_行走模型.md."

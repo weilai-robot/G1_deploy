@@ -1,0 +1,33 @@
+{
+  "expId": "exp-20261103-001",
+  "taskId": "TASK_20261103_048",
+  "outcome": "未命中",
+  "checkpoint": "model_7996.pt",
+  "sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+  "actualWeightVerified": true,
+  "optimizerStep": 160020,
+  "normalizerCount": 786530304,
+  "integration": {
+    "passed": true,
+    "evidence": "checkpoint-7996-inspection.json and cpp-inference-final.json"
+  },
+  "training": {
+    "passed": true,
+    "scope": "natural finished with actual final7996"
+  },
+  "behavior": {
+    "passed": false,
+    "evidence": "evaluation/summary.json",
+    "completed": 7,
+    "quantitativePassed": 2,
+    "qualityPassed": 3,
+    "qualityTotal": 4,
+    "scope": "Initial/STOP speed/yaw failures; right-contact RMS improved but left RMS target missed"
+  },
+  "ownerFeedback": "owner-video-feedback.json",
+  "ownerSelection": "Retain stable5997 and fluid7996 together; package both in deploy branch",
+  "baselineReplaced": false,
+  "overallGoalAccepted": false,
+  "deployGateOpen": false,
+  "next": "Owner-authorized deployment package replacement/build/validation; no new training requested during deployment work"
+}

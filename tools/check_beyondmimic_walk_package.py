@@ -53,6 +53,25 @@ def main():
     base=Path(__file__).resolve().parents[1]/'deploy/robots/g1_29dof/config/policy/beyondmimic'
     for package in ([a.package] if a.package else sorted(path for path in base.glob('walk_*') if path.is_dir())):
         print(json.dumps(check(package)))
+    registry=base/'walk_models.json'
+    if a.package is None and registry.exists():
+        index=json.loads(registry.read_text(encoding='utf8'))
+        models=index['models'];robot=base.parents[2]
+        if (index.get('format')!='beyondmimic_active_walk_pair_v1' or len(models)!=2 or
+                {m['package']for m in models}!={'walk_baseline','walk_contact'}):
+            raise ValueError('Invalid active walking pair registry')
+        for selected in models:
+            package=base/selected['package'];manifest=json.loads((package/'manifest.json').read_text(encoding='utf8'))
+            config=(robot/selected['fsm_config']).resolve()
+            if not config.is_relative_to(robot.resolve()):raise ValueError('FSM path escapes robot directory')
+            if (hashlib.sha256(config.read_bytes()).hexdigest()!=selected['fsm_sha256'] or
+                hashlib.sha256((package/'manifest.json').read_bytes()).hexdigest()!=selected['manifest_sha256']):
+                raise ValueError('Active model/config checksum mismatch')
+            for key in ['model_id','checkpoint_sha256','source_task_id','source_commit','observation_dim']:
+                if manifest.get(key)!=selected.get(key):raise ValueError('Active model selection mismatch: '+key)
+            if selected['observation_dim']!=154 or not manifest.get('deployment_target_contract',{}).get('applied_to_native_action'):
+                raise ValueError('Active pair must use trained154 deployment target contract')
+        print(json.dumps({'selected_pair':'passed','models':[m['model_id']for m in models]}))
 
 
 if __name__=='__main__':main()

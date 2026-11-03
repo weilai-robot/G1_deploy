@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-11-03T02:04:23.681Z",
+  "ownerSelection": {
+    "recordedAt": "2026-11-03T01:45:50.177Z",
+    "checkpoint": "model_7996.pt",
+    "taskId": "TASK_20261103_048",
+    "sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+    "comparisonCheckpoint": "exp-20261102-004/model_5997.pt",
+    "answer": "5997脚步更稳，但步态流畅度差一些，7996步态更流畅，但是脚步不太稳；保留两个模型并替换部署仓库原模型",
+    "interpretation": {
+      "model5997": "stable-foot variant",
+      "model7996": "more-fluid variant with less stable foot placement",
+      "retainBoth": true,
+      "ownerAuthorizedDeploymentPackaging": true,
+      "overallGoalAccepted": false,
+      "realRobotOperationAuthorized": false
+    },
+    "scope": "Owner explicitly requests both new154 models in beyondmimic deployment branch; not permission to operate real robot or waive failed frozen behavior gates"
+  },
+  "models": [
+    {
+      "model_id": "stable_5997_r26",
+      "package": "walk_baseline",
+      "checkpoint_sha256": "ce9a5731f5957e4954604cc9543769988f45a4164e771b86fcf40313a19acc28",
+      "source_task": "TASK_20261102_078"
+    },
+    {
+      "model_id": "fluid_7996_r29",
+      "package": "walk_contact",
+      "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+      "source_task": "TASK_20261103_048"
+    }
+  ],
+  "real_robot_tested": false,
+  "robot_commands_sent": false
+}

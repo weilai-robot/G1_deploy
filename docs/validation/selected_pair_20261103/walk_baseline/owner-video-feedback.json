@@ -1,0 +1,12 @@
+{
+  "receivedAt": "2026-11-02T08:51:02.221Z",
+  "experiment": "exp-20261102-004",
+  "taskId": "TASK_20261102_078",
+  "checkpoint": "model_5997.pt",
+  "comparedTo": "exp-20261102-002/model_3998.pt",
+  "question": "刚展示的 model_5997 相比上一轮 model_3998，左右脚换步的停顿感有什么变化？",
+  "ownerAnswer": "停顿感减轻",
+  "interpretation": "Positive visual transition-continuity improvement vs r24 parent; not blanket overall/hardware acceptance or replacement of the two retained160 models",
+  "overallAccepted": false,
+  "baselineReplacement": false
+}

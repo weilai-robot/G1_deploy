@@ -54,7 +54,28 @@ inline Config load_config(const std::filesystem::path& path) {
     };
     cfg.torso=chain("torso"); cfg.left_foot=chain("left_foot"); cfg.right_foot=chain("right_foot");
     cfg.validate();
+    // Native-limited policies were trained with this exact target mapping.
+    const auto target=yaml["deployment_target_contract"];
+    if(target) {
+        if(target["version"].as<std::string>()!="shared_cpp_target_limits_v1" ||
+           !target["applied_to_native_action"].as<bool>() ||
+           target["native_action_class"].as<std::string>()!="DeployableJointPositionAction" ||
+           target["policy_dt"].as<float>()!=cfg.dt ||
+           target["joint_names"].as<std::vector<std::string>>()!=yaml["joint_names"].as<std::vector<std::string>>())
+            throw std::runtime_error("Invalid trained deployment-target contract");
+        if(read_array<J>(target["joint_lower"])!=cfg.lower || read_array<J>(target["joint_upper"])!=cfg.upper ||
+           read_array<J>(target["kp"])!=cfg.kp || read_array<J>(target["kd"])!=cfg.kd ||
+           read_array<J>(target["effort_limit"])!=cfg.effort || read_array<J>(target["default_joint_pos"])!=cfg.default_q ||
+           read_array<J>(target["action_scale"])!=cfg.action_scale)
+            throw std::runtime_error("Deployment control parameters differ from native training");
+    }
     return cfg;
+}
+
+inline void validate_trained_target_rate(const YAML::Node& package,float rate) {
+    const auto target=package["deployment_target_contract"];
+    if(target && rate!=target["max_target_speed"].as<float>())
+        throw std::runtime_error("FSM target rate differs from native training");
 }
 
 class Runner {

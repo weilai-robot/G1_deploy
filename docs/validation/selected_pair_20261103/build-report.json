@@ -1,0 +1,62 @@
+{
+  "compiler": "g++ (Ubuntu 13.1.0-8ubuntu1~20.04.2) 13.1.0",
+  "target": "Linux x86_64",
+  "controller_compile_exit_code": 0,
+  "help_exit_code": 0,
+  "help_stdout": "Unitree Controller:\n  -h [ --help ]         produce help message\n  -v [ --version ]      show version\n  --log                 record log file\n  -n [ --network ] arg  dds network interface\n  --domain arg (=0)     DDS domain (use a separate domain for simulation)\n  --config arg          explicit FSM configuration file\n\n",
+  "missing_shared_libraries": false,
+  "probe_cmake_build_exit_code": 0,
+  "sdk_commit": "",
+  "binary_sha256": "6e1a4d8f2ff6fff81458973da80b29056a1d4df96cbd0ef1d634b0f8fcc3c130",
+  "source_sha256": {
+    "deploy/include/beyondmimic/core.h": "c987db658e89ab391fc33795f10cc512977bfe9e6809ae7909819d5c9ddb8b69",
+    "deploy/include/beyondmimic/package.h": "d68cb1cebd448f09f778fde5355c858104f52d3901c3339ba0048cf346af953d",
+    "deploy/include/beyondmimic/cyclic.h": "85b8ad6a38cb4dad007d3059013df168af059f10bd12eab408828485e334e5fe",
+    "deploy/robots/g1_29dof/src/State_BeyondMimicWalk.cpp": "3169a824f907a09798a689c17c159a0a17fc433a58b741b4518172dc9f457473",
+    "deploy/tools/beyondmimic_offline.cpp": "28d2ece00a22e2a0f852d2ead9635bf16bb461501ef46b57501eca95407773b3",
+    "deploy/tools/beyondmimic_walk_probe.cpp": "b19da8a95652e7482b8cecaa6e34eb33432f2752c7d1932a112ebf2a53eebb80",
+    "tools/check_beyondmimic_walk_package.py": "7c3681cc70579d482deff4315e5f272eea2854c3c932cc2b661c1270c8445721",
+    "tools/import_beyondmimic_walk_models.py": "885770e0fb7be67af666931ff66a60609b8d4c3bc5a42e3bfb931014b170f180"
+  },
+  "model_config_load_checks": {
+    "walk_baseline": {
+      "model_id": "stable_5997_r26",
+      "checkpoint_sha256": "ce9a5731f5957e4954604cc9543769988f45a4164e771b86fcf40313a19acc28",
+      "observation_dim": 154,
+      "fixstand_matches_initial_support": true,
+      "onnx_session_created": true,
+      "trained_target_contract_checked": true,
+      "robot_commands_sent": false
+    },
+    "walk_contact": {
+      "model_id": "fluid_7996_r29",
+      "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+      "observation_dim": 154,
+      "fixstand_matches_initial_support": true,
+      "onnx_session_created": true,
+      "trained_target_contract_checked": true,
+      "robot_commands_sent": false
+    }
+  },
+  "negative_contract_checks": {
+    "control": {
+      "rejected": true,
+      "error": "BeyondMimic offline error: Deployment control parameters differ from native training"
+    },
+    "rate": {
+      "rejected": true,
+      "error": "BeyondMimic offline error: FSM target rate differs from native training"
+    },
+    "fixstand": {
+      "rejected": true,
+      "error": "BeyondMimic offline error: FixStand differs from selected model support/PD"
+    }
+  },
+  "robot_commands_sent": false,
+  "dds_execution": false,
+  "arm64_compiled": false,
+  "real_robot_tested": false,
+  "runtime_timing_on_robot_measured": false,
+  "dynamic_library_search": "existing ORT/SDK/Anaconda directories explicitly supplied; no dependency installation",
+  "ldd_stdout": "\tlinux-vdso.so.1 (0x00007ffce51bc000)\n\tlibddsc.so.0 => /home/robot/F1_train/yanni/beyondmimic_deploy_probe/vendor/unitree_sdk2/thirdparty/lib/x86_64/libddsc.so.0 (0x00007f447c0f7000)\n\tlibddscxx.so.0 => /home/robot/F1_train/yanni/beyondmimic_deploy_probe/vendor/unitree_sdk2/thirdparty/lib/x86_64/libddscxx.so.0 (0x00007f447beed000)\n\tlibonnxruntime.so.1 => /home/robot/F1_train/yanni/beyondmimic_deploy_probe/deploy/thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1 (0x00007f447aad5000)\n\tlibyaml-cpp.so.0.8 => /home/robot/Anaconda/lib/libyaml-cpp.so.0.8 (0x00007f447aa5b000)\n\tlibboost_program_options.so.1.71.0 => /lib/x86_64-linux-gnu/libboost_program_options.so.1.71.0 (0x00007f447a9ad000)\n\tlibpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f447a98a000)\n\tlibstdc++.so.6 => /home/robot/Anaconda/lib/libstdc++.so.6 (0x00007f447a795000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f447a646000)\n\tlibgcc_s.so.1 => /home/robot/Anaconda/lib/libgcc_s.so.1 (0x00007f447a626000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f447a434000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007f447c6ab000)\n\tlibdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f447a42c000)\n\tlibrt.so.1 => /lib/x86_64-linux-gnu/librt.so.1 (0x00007f447a422000)\n"
+}

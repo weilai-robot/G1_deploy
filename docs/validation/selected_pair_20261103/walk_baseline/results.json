@@ -1,0 +1,63 @@
+{
+  "expId": "exp-20261102-004",
+  "round": "r26",
+  "taskId": "TASK_20261102_078",
+  "outcome": "未命中",
+  "scope": "All7 frozen functional protocols passed; original full prediction missed one preregistered contact RMS target. Naturalness/step-transition review pending, no baseline replacement or hardware acceptance.",
+  "sourceCommit": "4fb49d2355f6c5b7b94f289c73b449b504f3ebd3",
+  "checkpointInspection": "checkpoint-recovery-5997-inspection.json",
+  "cppInference": "cpp-inference-final.json",
+  "summary": "evaluation/summary.json",
+  "functional": {
+    "completed": 7,
+    "quantitativePassed": 7,
+    "total": 7
+  },
+  "qualityChecks": [
+    {
+      "field": "left.contact_tangent_mean_mps",
+      "value": 0.01561280909734732,
+      "baseline": 0.02022638997963113,
+      "maximum": 0.02022638997963113,
+      "passed": true
+    },
+    {
+      "field": "left.contact_tangent_rms_mps",
+      "value": 0.06141444852253981,
+      "baseline": 0.11384177940783713,
+      "maximum": 0.11384177940783713,
+      "passed": true
+    },
+    {
+      "field": "right.contact_tangent_mean_mps",
+      "value": 0.01934808709481401,
+      "baseline": 0.027864955734446722,
+      "maximum": 0.020898716800835042,
+      "passed": true
+    },
+    {
+      "field": "right.contact_tangent_rms_mps",
+      "value": 0.09741369031414701,
+      "baseline": 0.11288117311103371,
+      "maximum": 0.08466087983327528,
+      "passed": false
+    }
+  ],
+  "contactTelemetryEquality": true,
+  "contactMetrics": "evaluation/final/gait_diagnostics/gait_diagnostics.json",
+  "stepTransitionDiagnostics": "evaluation/step_transition_comparison.json",
+  "stepTransitionPlot": "evaluation/step_transition_phase_comparison.png",
+  "stopResponsePolicy": "Actual per-protocol stable suffix response reported in evaluation/summary.json, no user hard latency deadline",
+  "naturalnessReview": "Owner explicitly reports reduced step-transition hesitation vs r24/model3998; no full naturalness or hardware acceptance inferred",
+  "interruptedAttempt": {
+    "taskId": "TASK_20261102_025",
+    "status": "6",
+    "cause": "Unknown; no billing review",
+    "recoveryRecorded": "attempts/recovery-001/plan.json"
+  },
+  "behaviorAcceptance": false,
+  "deployGateOpen": false,
+  "baselineReplacement": false,
+  "next": "Use measured intra-cycle speed ripple to investigate targeted pelvis velocity tracking, preserving gait/contact/physical constraints. No unchanged extension or further checkpoint shopping.",
+  "ownerFeedback": "owner-video-feedback.json"
+}

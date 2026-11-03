@@ -22,3 +22,7 @@ deploy/robots/g1_29dof/config/policy/beyondmimic/walk_*/deploy.yaml text eol=lf
 deploy/robots/g1_29dof/config/policy/beyondmimic/walk_*/manifest.json text eol=lf
 deploy/robots/g1_29dof/config/policy/beyondmimic/walk_*/gait.bin -text
 deploy/robots/g1_29dof/config/policy/beyondmimic/walk_*/policy.onnx -text
+
+# Active pair binds its model-specific FSM bytes across platforms.
+deploy/robots/g1_29dof/config/beyondmimic_walk*.yaml text eol=lf
+deploy/robots/g1_29dof/config/policy/beyondmimic/walk_models.json text eol=lf

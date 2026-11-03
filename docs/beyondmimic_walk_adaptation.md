@@ -1,3 +1,5 @@
+> 当前两个部署入口已更新为 r26/5997 稳定版和 r29/7996 流畅版，见 [当前模型说明](G1_BeyondMimic_行走模型.md)。下文保留历史接入与诊断记录；其中“默认模型未替换”描述对应当时提交。
+
 # BeyondMimic walking deployment adaptation
 
 Historical160-model adaptation record. The owner subsequently resumed training for deployable actor observations; current154 work and validation limits are documented in [beyondmimic_proprio154.md](beyondmimic_proprio154.md).

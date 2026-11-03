@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "samples": 64,
+  "max_abs_action_error": 5.960464477539062e-07,
+  "checkpoint_sha256": "eda733782a34673c887e84ff5091c1ad57b2d613ac65211d0bfc223adfae47bc",
+  "policy_sha256": "ccea2ebef8145ec25d21a3b9cf938638367cf9c7662bf927ac97680c6eb704f9"
+}

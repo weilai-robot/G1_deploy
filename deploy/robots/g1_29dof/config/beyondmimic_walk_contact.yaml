@@ -178,5 +178,4 @@ FSM:
     max_start_error: 0.25
     max_tilt: 0.85
     max_target_speed: 8.0
-    max_anchor_error: 0.35
     log_directory: log/beyondmimic_walk
