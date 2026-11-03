@@ -1,32 +1,97 @@
-# G1 BeyondMimic 手柄行走与启停
+# G1 29DOF：BeyondMimic 真机测试
 
-分支 `yanni-G1-walk-beyondmimic` 维护用户选定的两个 G1-29DOF 模型，使用现有 Unitree FSM、共享 C++ 控制映射和 ONNX Runtime。2026-11-03 替换之前的160维行走模型；历史权重仍保存在训练归档和 Git 历史中。
+**终端命令在 G1 机载 Linux 电脑执行；机器人动作通过宇树遥控手柄控制。** 下面先测试 5997 稳定版。
 
-| 可选模型 | 配置（相对 deploy/robots/g1_29dof） | 用户对比反馈 |
-|---|---|---|
-| 5997 稳定版，`stable_5997_r26` | `config/beyondmimic_walk.yaml` | 脚步更稳，流畅度较低 |
-| 7996 流畅版，`fluid_7996_r29` | `config/beyondmimic_walk_contact.yaml` | 步态更流畅，脚步稳定性较低 |
+当前尚未完成真机验收；7996 流畅版仍有初始站立、停车未通过的离线检查项。首次测试保持防跌落保护，退出策略会进入阻尼，不能继续保持站立。
 
-这里的7996来自 `TASK_20261103_048`，与此前被否定的同名检查点不是同一权重。模型来源、SHA和配置绑定见 [walk_models.json](deploy/robots/g1_29dof/config/policy/beyondmimic/walk_models.json)。
+## 1. 下载代码
 
-两版均使用154维 actor，只接收参考、IMU、编码器和上一动作，不需要位置或线速度估计；原生训练已执行相同的关节、目标速度及 PD 包络限制。前推控制行走速度，行走时右杆控制转向，回中按支撑相制动并保持策略站立，再推杆重新起步。侧移、倒退和原地转向不在训练范围内。
+首次下载：
 
-模型完整性、Linux编译、推理一致性及离线闭环结果见 [验证记录](docs/beyondmimic_walk_validation.json)。5997的原冻结功能协议全部通过；7996仍有初始站立和停车速度/偏航未过门项。两版按用户要求保留比较，尚无真机验收，不能把打包和编译通过当成整体行为通过。
+```bash
+cd ~
+git clone --branch yanni-G1-walk-beyondmimic https://github.com/weilai-robot/G1_deploy.git G1_deploy
+cd ~/G1_deploy
+```
 
-更新和构建不会启动机器人：
+已经有仓库则执行以下命令；有本地修改时先保留：
 
 ```bash
 cd ~/G1_deploy
+git fetch origin
 git switch yanni-G1-walk-beyondmimic
 git pull --ff-only origin yanni-G1-walk-beyondmimic
-python3 tools/check_beyondmimic_walk_package.py
-bash tools/build_g1_deploy.sh
-./deploy/robots/g1_29dof/build/g1_ctrl --help
 ```
 
-- [从拉取、构建到人工选择模型](docs/G1_真机从git_pull到运行.md)
-- [手柄操作、模型接口与实际验收状态](docs/G1_BeyondMimic_行走模型.md)
-- [154维接口及历史修正记录](docs/beyondmimic_proprio154.md)
-- [旧 dance_zui 有限片段说明](docs/G1_BeyondMimic_部署流程.md)，使用独立配置 `beyondmimic.yaml`。
+## 2. 编译
 
-真机推理无需 Isaac Lab、PyTorch 或训练仓库。控制框架来自 [unitree_rl_lab](https://github.com/unitreerobotics/unitree_rl_lab)，训练架构基于 [BeyondMimic](https://github.com/HybridRobotics/whole_body_tracking)。原始许可见 [LICENCE](LICENCE)。
+首次使用 Ubuntu 时安装依赖；已安装可跳过：
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake git curl python3 \
+  libyaml-cpp-dev libboost-all-dev libeigen3-dev libspdlog-dev libfmt-dev
+```
+
+校验模型并编译（脚本会按本机架构下载 ONNX Runtime）：
+
+```bash
+cd ~/G1_deploy
+python3 tools/check_beyondmimic_walk_package.py
+bash tools/build_g1_deploy.sh
+```
+
+模型校验应输出 `"selected_pair": "passed"`，编译应生成 `deploy/robots/g1_29dof/build/g1_ctrl`。
+
+如果 SDK 安装在 `/opt/unitree_robotics`，把最后一行换成：
+
+```bash
+UNITREE_SDK_PREFIX=/opt/unitree_robotics bash tools/build_g1_deploy.sh
+```
+
+若提示缺少 `unitree/dds_wrapper/robots/g1/g1.h`，按[SDK 安装说明](docs/G1_BeyondMimic_部署流程.md#3-安装-linux-编译依赖与宇树-sdk)配置包含该头文件的 SDK，再重新编译。
+
+## 3. 启动
+
+先按本机固件操作流程进入开发/调试状态，停止内置运动控制及其他低层控制程序。
+
+查看网卡：
+
+```bash
+ip -br -4 addr
+```
+
+启动程序。下面的 `eth0` **必须替换成实际连接机器人网络的网卡**：
+
+```bash
+cd ~/G1_deploy/deploy/robots/g1_29dof
+./build/g1_ctrl --network eth0 --domain 0 \
+  --config config/beyondmimic_walk.yaml --log
+```
+
+看到 `Connected to robot.`、模型标识 `stable_5997_r26` 和 `FSM: Start Passive` 后，保持终端运行。**这时尚未开始走路。**
+
+| 模型 | 启动配置（--config） | 对比观感 |
+|---|---|---|
+| 5997 稳定版（先测） | `config/beyondmimic_walk.yaml` | 脚步更稳，流畅度较低 |
+| 7996 流畅版 | `config/beyondmimic_walk_contact.yaml` | 步态更流畅，脚步稳定性较低 |
+
+测试 7996 时，**先退出当前控制程序**，再将启动配置换成表中对应项；日志模型标识应为 `fluid_7996_r29`。两版共用同一次编译结果。
+
+## 4. 用手柄控制
+
+以下按键与当前[行走配置](deploy/robots/g1_29dof/config/beyondmimic_walk.yaml)一致；准备姿态过渡时间来自 `FixStand.ts`：
+
+| 顺序 | 宇树遥控手柄操作 | 机器人行为 |
+|---|---|---|
+| ① | **L2 + 方向键上** | 进入当前模型准备站姿；至少等待配置中的 **3 秒**，确认姿态和双脚接触正常 |
+| ② | **左右摇杆回中，再按 R1 + X** | 进入行走策略，先保持策略站立 |
+| ③ | **左摇杆前推** | 开始行走；前推幅度控制前进速度 |
+| ④ | **前进时拨动右摇杆左右方向** | 控制行走转向 |
+| ⑤ | **左右摇杆回中** | 按支撑相制动并保持策略站立；再次前推可重新起步 |
+| ⑥ | **L2 + B** | 退出策略，进入阻尼，由防跌落保护承重 |
+| ⑦ | 在终端按 **Ctrl+C** | 请求阻尼并结束程序 |
+
+**不支持倒退、侧移或原地转向。摇杆回中用于策略停车；L2 + B 是退出到阻尼，不是“平稳停下并站住”。**
+
+日志在 `~/G1_deploy/deploy/robots/g1_29dof/log/beyondmimic_walk/`，文件名包含模型标识。测试后保留完整 CSV 和视频。模型接口、验证结果与旧模型保留情况见[详细说明](docs/G1_BeyondMimic_行走模型.md)。
