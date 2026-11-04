@@ -282,6 +282,8 @@ public:
     }
     int clipped() const { return clipped_; }
     const Config& config() const { return cfg_; }
+    // 预摆位结束时把已下发的姿态同步为内部基准，避免限速器把第一个策略目标当成跳变。
+    void adopt_target(const Joints& sdk) { last_target_ = sdk; }
 private:
     Config cfg_;
     Quat alignment_ = Quat::Identity();
