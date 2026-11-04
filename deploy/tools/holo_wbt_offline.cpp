@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
             s.angular_velocity = holowbt::Vec(w.data());
             auto ref = motion.frame(input["frame"].as<std::size_t>());
             if (!initialised || (input["reset"] && input["reset"].as<bool>())) {
-                core.reset(s);
+                core.reset(s, ref);
                 initialised = true;
             }
             auto obs = core.observe(s, ref);

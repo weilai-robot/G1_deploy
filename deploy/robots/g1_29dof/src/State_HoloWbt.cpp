@@ -80,7 +80,7 @@ bool State_HoloWbt::try_enter() {
                      current.q[cfg.sdk_indices[worst]], blend_s_, blend_rate_);
         if (error > max_start_error_)
             throw std::runtime_error("Initial posture differs from reference by " + std::to_string(error) + " rad; return to FixStand");
-        core_->reset(current);
+        core_->reset(current, ref);
         for (int i = 0; i < holowbt::J; ++i) {
             auto& motor = lowcmd->msg_.motor_cmd()[cfg.sdk_indices[i]];
             motor.q() = current.q[cfg.sdk_indices[i]];

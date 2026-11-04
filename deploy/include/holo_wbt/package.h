@@ -214,11 +214,27 @@ private:
 
 // 观测拼装 + 动作换算。holosoma 的 concatenate 组按术语名字母序拼接，因此顺序是：
 // actions(29) base_ang_vel(3) dof_pos(29) dof_vel(29) motion_command(58) motion_ref_ori_b(6)。
+constexpr int AnchorBody = 7;   // torso_link
+constexpr int PelvisBody = 0;
+
+// 只取水平旋转分量：参考动作的绝对偏航与机器人初始朝向无关，必须对齐掉。
+inline Quat yaw_only(const Quat& q) {
+    const float angle = std::atan2(2.0f * (q.w() * q.z() + q.x() * q.y()),
+                                   1.0f - 2.0f * (q.y() * q.y() + q.z() * q.z()));
+    return Quat(Eigen::AngleAxisf(angle, Vec::UnitZ()));
+}
+
 class Core {
 public:
     explicit Core(Config cfg) : cfg_(std::move(cfg)) { cfg_.validate(); }
-    void reset(const Snapshot& s) {
+    // reset 需要参考首帧：训练时机器人被放在参考起始位姿上，真机则是任意朝向，
+    // 所以把“机器人 anchor 偏航 vs 参考 anchor 偏航”的差值记为对齐量，
+    // 使进入瞬间的 motion_ref_ori_b 为零，与训练起点分布一致。
+    void reset(const Snapshot& s, const Reference& ref) {
         validate_snapshot(s);
+        const auto torso = forward_kinematics(cfg_.torso, s.q);
+        const Quat torso_q = s.orientation * Quat(torso.rotation());
+        alignment_ = yaw_only(torso_q) * yaw_only(ref.orientations[AnchorBody]).conjugate();
         last_action_.fill(0);
         last_target_ = s.q;
     }
@@ -226,7 +242,7 @@ public:
         validate_snapshot(s);
         const auto torso = forward_kinematics(cfg_.torso, s.q);
         const Quat torso_q = s.orientation * Quat(torso.rotation());
-        const Quat ref_q = ref.orientations[7];  // anchor body: torso_link
+        const Quat ref_q = alignment_ * ref.orientations[AnchorBody];
         const auto rot = (torso_q.conjugate() * ref_q).toRotationMatrix();
         std::array<float, O> obs{};
         int k = 0;
@@ -268,6 +284,7 @@ public:
     const Config& config() const { return cfg_; }
 private:
     Config cfg_;
+    Quat alignment_ = Quat::Identity();
     Joints last_action_{}, last_target_{};
     int clipped_ = 0;
 };

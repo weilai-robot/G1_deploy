@@ -29,7 +29,7 @@ import yaml
 OBS_DIM = 154
 ACTION_DIM = 29
 BODY_COUNT = 14
-ANCHOR_INDEX = 7  # torso_link
+ANCHOR_INDEX = 7   # torso_link
 TOLERANCE = 1e-5
 
 
@@ -111,8 +111,19 @@ def load_reference(path: Path) -> dict:
     }
 
 
+def yaw_matrix(quat: list[float]) -> np.ndarray:
+    """Heading-only rotation, mirroring holowbt::yaw_only."""
+    m = wxyz_to_matrix(quat)
+    yaw = np.arctan2(m[1, 0], m[0, 0])
+    return np.array([
+        [np.cos(yaw), -np.sin(yaw), 0.0],
+        [np.sin(yaw), np.cos(yaw), 0.0],
+        [0.0, 0.0, 1.0],
+    ])
+
+
 def expected_observation(config: dict, reference: dict, frame: int, tilt_yaw: float = 0.0,
-                         label: str = "") -> dict:
+                         label: str = "", pelvis_yaw: float | None = None) -> dict:
     """Build the state and the observation a correct implementation must produce."""
     chain = config["kinematics"]["torso"]
     q_policy = reference["q"][frame].copy()
@@ -129,8 +140,17 @@ def expected_observation(config: dict, reference: dict, frame: int, tilt_yaw: fl
         [0.0, 0.0, 1.0],
     ])
     pelvis = yaw @ ref_torso @ fk.T
+    if pelvis_yaw is not None:
+        # 真机场景：机器人朝世界 +x 站立，参考动作自身的绝对偏航与之无关。
+        pelvis = np.array([
+            [np.cos(pelvis_yaw), -np.sin(pelvis_yaw), 0.0],
+            [np.sin(pelvis_yaw), np.cos(pelvis_yaw), 0.0],
+            [0.0, 0.0, 1.0],
+        ])
     torso = pelvis @ fk
-    relative = torso.T @ ref_torso
+    # deploy 时把机器人 anchor 朝向与参考 anchor 朝向的偏航差对齐掉，参考朝向在机器人坐标系里表达。
+    alignment = yaw_matrix(matrix_to_wxyz(torso)) @ yaw_matrix(reference["quat"][frame, ANCHOR_INDEX].tolist()).T
+    relative = torso.T @ (alignment @ ref_torso)
 
     observation = np.concatenate([
         np.zeros(ACTION_DIM),                    # actions
@@ -208,6 +228,9 @@ def main() -> None:
     frames = sorted({0, reference["frames"] // 2, reference["frames"] - 1})
     states = [expected_observation(config, reference, frame, 0.0, "ideal") for frame in frames]
     states += [expected_observation(config, reference, frame, arguments.tilt, f"tilt{arguments.tilt:g}")
+               for frame in frames]
+    # 真机情形：机器人朝 +x 站立，参考动作首帧偏航约 -1.6 rad；对齐后 ori 应接近单位阵。
+    states += [expected_observation(config, reference, frame, 0.0, "world-yaw0", pelvis_yaw=0.0)
                for frame in frames]
 
     for state in states:
