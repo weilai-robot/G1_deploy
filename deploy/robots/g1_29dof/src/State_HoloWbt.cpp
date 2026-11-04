@@ -16,10 +16,12 @@ State_HoloWbt::State_HoloWbt(int state, std::string name) : FSMState(state, name
     max_target_speed_ = cfg["max_target_speed"].as<float>(8.0f);
     blend_s_ = cfg["blend_s"].as<float>(2.5f);
     blend_rate_ = cfg["blend_rate"].as<float>(1.5f);
+    prepose_s_ = cfg["prepose_s"].as<float>(3.0f);
+    prepose_only_ = cfg["prepose_only"].as<bool>(false);
     if (start_frame_ >= motion_->frames() || !std::isfinite(duration) || duration <= 0 || duration > 300 ||
         !(max_start_error_ > 0 && max_start_error_ < 0.9f) || !(max_tilt_ > 0 && max_tilt_ < 1.5f) ||
         !(max_target_speed_ > 0 && max_target_speed_ <= 20) || !(blend_s_ >= 0 && blend_s_ <= 10) ||
-        !(blend_rate_ > 0 && blend_rate_ <= 8))
+        !(blend_rate_ > 0 && blend_rate_ <= 8) || !(prepose_s_ >= 0 && prepose_s_ <= 10))
         throw std::runtime_error("Invalid holo_wbt segment/limits");
     end_frame_ = std::min(motion_->frames(), start_frame_ + static_cast<std::size_t>(duration / core_->config().dt));
     if (end_frame_ <= start_frame_) throw std::runtime_error("Empty holo_wbt segment");
@@ -80,7 +82,6 @@ bool State_HoloWbt::try_enter() {
                      current.q[cfg.sdk_indices[worst]], blend_s_, blend_rate_);
         if (error > max_start_error_)
             throw std::runtime_error("Initial posture differs from reference by " + std::to_string(error) + " rad; return to FixStand");
-        core_->reset(current, ref);
         for (int i = 0; i < holowbt::J; ++i) {
             auto& motor = lowcmd->msg_.motor_cmd()[cfg.sdk_indices[i]];
             motor.q() = current.q[cfg.sdk_indices[i]];
@@ -89,6 +90,17 @@ bool State_HoloWbt::try_enter() {
             motor.dq() = 0;
             motor.tau() = 0;
         }
+        for (int i = 0; i < holowbt::J; ++i) prepose_goal_[cfg.sdk_indices[i]] = ref.q[i];
+        for (int i = 0; i < holowbt::J; ++i) {
+            prepose_goal_[cfg.sdk_indices[i]] = std::clamp(prepose_goal_[cfg.sdk_indices[i]],
+                                                           cfg.lower[i] + 0.01f, cfg.upper[i] - 0.01f);
+        }
+        prepose_from_ = current.q;
+        preposing_ = prepose_s_ > 0 && error > 0.05f;
+        preposed_ = !preposing_ && prepose_only_;
+        prepose_tick_ = 0;
+        prepose_ticks_ = std::max(1, static_cast<int>(std::lround(prepose_s_ / cfg.dt)));
+        if (!preposing_) core_->reset(current, ref);
         targets_ = current.q;
         last_command_ = current.q;
         frame_ = start_frame_;
@@ -96,7 +108,8 @@ bool State_HoloWbt::try_enter() {
         blending_ = blend_s_ > 0;
         last_result_ = next_step_ = std::chrono::steady_clock::now();
         stopped_ = false;
-        spdlog::info("HoloWbt engaged: frames {}..{} at {:.0f} Hz", start_frame_, end_frame_ - 1, 1.0f / cfg.dt);
+        spdlog::info("HoloWbt engaged: frames {}..{} at {:.0f} Hz{}", start_frame_, end_frame_ - 1, 1.0f / cfg.dt,
+                     preposing_ ? ", pre-positioning to the reference start pose" : "");
         return true;
     } catch (const std::exception& e) {
         stopped_ = true;
@@ -117,6 +130,38 @@ void State_HoloWbt::step_policy() {
         auto current = snapshot();
         const float tilt = std::acos(std::clamp((current.orientation * holowbt::Vec::UnitZ()).z(), -1.0f, 1.0f));
         if (tilt > max_tilt_) throw std::runtime_error("Pelvis tilt limit exceeded (tilt=" + std::to_string(tilt) + " rad)");
+        // 预摆位：先用平滑插值把机器人摆到参考首帧的姿态，再让策略接管。
+        if (preposing_) {
+            const float alpha = std::min(1.0f, static_cast<float>(++prepose_tick_) / static_cast<float>(prepose_ticks_));
+            const float s = alpha * alpha * (3.0f - 2.0f * alpha);
+            holowbt::Joints cmd{};
+            for (int i = 0; i < holowbt::J; ++i)
+                cmd[i] = (1.0f - s) * prepose_from_[i] + s * prepose_goal_[i];
+            last_command_ = cmd;
+            targets_ = cmd;
+            last_result_ = std::chrono::steady_clock::now();
+            if (prepose_tick_ >= prepose_ticks_) {
+                preposing_ = false;
+                if (prepose_only_) {
+                    preposed_ = true;
+                    spdlog::info("HoloWbt pre-position held; press [R1 + X] to start the motion, [R1 + A] to abort");
+                    return;
+                }
+                core_->reset(current, motion_->frame(start_frame_));
+                core_->adopt_target(cmd);
+                frame_ = start_frame_;
+                blend_tick_ = 0;
+                blending_ = blend_s_ > 0;
+                spdlog::info("HoloWbt pre-position done; policy engaged at frame {}", start_frame_);
+            } else if (prepose_tick_ % 25 == 0) {
+                spdlog::info("HoloWbt pre-positioning {}/{}", prepose_tick_, prepose_ticks_);
+            }
+            return;
+        }
+        if (preposed_) {
+            last_result_ = std::chrono::steady_clock::now();  // 保持阶段也要喂看门狗
+            return;
+        }
         auto ref = motion_->frame(frame_);
         auto obs = core_->observe(current, ref);
         auto action = runner_->act(obs);

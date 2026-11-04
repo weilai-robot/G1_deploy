@@ -76,9 +76,10 @@ int main(int argc, char** argv)
         std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else if(holo_wbt) {
-        std::cout << "FixStand holds a stiff pose only: press [R1 + X] to hand over to Velocity (balanced stand).\n";
-        std::cout << "Then hold [L2] for 2 seconds and press [Right] to start HoloWbt.\n";
-        std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
+        std::cout << "Hold [L2] 2s + [Right] -> pre-pose (the reference start pose, held still).\n";
+        std::cout << "[R1 + X] -> run the motion;  [R1 + A] -> abort to damping.\n";
+        std::cout << "FixStand only holds a stiff pose; use [R1 + X] there to reach Velocity.\n";
+        std::cout << "Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else {
         std::cout << "And then press [R1 + X] to start controlling the robot.\n";
     }

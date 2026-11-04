@@ -8,8 +8,11 @@ FSM:
     Velocity:
       id: 3
       type: RLBase
-    Holo_Box:
+    Holo_Prepose:
       id: 201
+      type: HoloWbt
+    Holo_Box:
+      id: 202
       type: HoloWbt
   Passive:
     transitions:
@@ -78,7 +81,7 @@ FSM:
     transitions:
       Passive: LT + B.on_pressed
       Velocity: RB + X.on_pressed
-      Holo_Box: LT(2s) + right.on_pressed
+      Holo_Prepose: LT(2s) + right.on_pressed
     kp:
     - 40.17923847137318
     - 99.09842777666113
@@ -173,10 +176,24 @@ FSM:
       - 0.0
       - 0.0
       - 0.0
+  Holo_Prepose:
+    transitions:
+      # 注意：transitions 是 {目标状态: 条件} 映射，同一目标只能绑一个按键。
+      Passive: RB + A.on_pressed      # 终止：立即进入阻尼
+      Holo_Box: RB + X.on_pressed     # 启动动作
+    policy_dir: config/policy/holo_wbt/czy_box
+    start_frame: 0
+    duration_s: 6.5
+    max_start_error: 0.7
+    max_tilt: 0.85
+    max_target_speed: 8.0
+    # 只做预摆位并保持，等 RB+X 再进入 Holo_Box 跑动作。
+    prepose_only: true
+    prepose_s: 4.0
   Holo_Box:
     transitions:
-      Passive: LT + B.on_pressed
-      Velocity: RB + X.on_pressed
+      Passive: RB + A.on_pressed      # 终止：立即进入阻尼
+      Velocity: RB + X.on_pressed     # 提前结束动作，交回站立
     policy_dir: config/policy/holo_wbt/czy_box
     start_frame: 0
     duration_s: 6.5
@@ -184,12 +201,13 @@ FSM:
     max_start_error: 0.7
     max_tilt: 0.85
     max_target_speed: 8.0
-    # 进入后的过渡：参考帧停在首帧，指令以 blend_rate 的关节速度上限逼近策略目标，
-    # 最多 blend_s 秒。1.5 rad/s 下从站立到参考首帧约 1 秒。
-    blend_s: 2.5
+    # 从预摆位姿态起步，动作已接近参考首帧，只需短过渡。
+    blend_s: 1.5
     blend_rate: 1.5
+    prepose_only: false
+    prepose_s: 0.0
   Velocity:
     transitions:
       Passive: LT + B.on_pressed
-      Holo_Box: LT(2s) + right.on_pressed
+      Holo_Prepose: LT(2s) + right.on_pressed
     policy_dir: config/policy/velocity

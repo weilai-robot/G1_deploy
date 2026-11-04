@@ -126,6 +126,15 @@ class Replay:
         self.first = True
         self.fell = False
         self.hold = getattr(args, "hold", False)
+        # 镜像 State_HoloWbt 的预摆位：先插值到参考首帧姿态，再让策略接管。
+        self.prepose_ticks = max(0, int(round(getattr(args, "prepose", 0.0) / self.dt)))
+        self.prepose_tick = 0
+        self.preposing = self.prepose_ticks > 0 and args.start != "reference"
+        self.prepose_from = self.start_pose.copy()
+        ref_joints, _quat, _height = load_reference_frame(args.package, args.start_frame)
+        sdk = np.asarray(self.config["sdk_indices"], dtype=int)
+        self.prepose_goal = np.zeros(len(self.names), dtype=np.float64)
+        self.prepose_goal[sdk] = ref_joints
 
     def _start_state(self, args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray, float]:
         """Initial joints and pelvis attitude/height for the chosen entry."""
@@ -160,7 +169,16 @@ class Replay:
         return json.dumps(payload)
 
     def control_step(self) -> dict:
-        if self.hold:
+        if self.preposing:
+            self.prepose_tick += 1
+            alpha = min(1.0, self.prepose_tick / self.prepose_ticks)
+            s = alpha * alpha * (3.0 - 2.0 * alpha)
+            command = (1.0 - s) * self.prepose_from + s * self.prepose_goal
+            reply = {"targets": command.tolist(), "clipped": 0}
+            if self.prepose_tick >= self.prepose_ticks:
+                self.preposing = False
+                self.prepose_tick = 0
+        elif self.hold:
             # 诊断用：不跑策略，直接保持初始姿态，检查物理与 PD 增益是否能支撑站立。
             reply = {"targets": self.start_pose.tolist(), "clipped": 0}
             command = self.start_pose
@@ -234,7 +252,10 @@ def main() -> None:
     parser.add_argument("--blend-rate", type=float, default=1.5)
     parser.add_argument("--hold", action="store_true",
                         help="diagnostic: hold the initial pose without running the policy")
+    parser.add_argument("--prepose", type=float, default=0.0,
+                        help="seconds to interpolate into the reference start pose before the policy takes over")
     parser.add_argument("--report", type=Path, default=None)
+    parser.add_argument("--video", type=Path, default=None, help="write an mp4 of the rollout")
     args = parser.parse_args()
 
     package = args.package.resolve()
@@ -243,13 +264,38 @@ def main() -> None:
     replay.reset(args.height)
     steps = int(round(args.seconds / replay.dt))
     started = time.perf_counter()
+    writer = renderer = camera = None
+    if args.video is not None:
+        import cv2
+
+        args.video.parent.mkdir(parents=True, exist_ok=True)
+        replay.model.vis.global_.offwidth, replay.model.vis.global_.offheight = 960, 540
+        renderer = mujoco.Renderer(replay.model, height=540, width=960)
+        writer = cv2.VideoWriter(str(args.video), cv2.VideoWriter_fourcc(*"mp4v"), 25, (960, 540))
+        if not writer.isOpened():
+            raise RuntimeError("video writer did not open")
+        camera = mujoco.MjvCamera()
+        camera.distance, camera.azimuth, camera.elevation = 2.8, 130, -15
     try:
-        for _ in range(steps):
+        for step in range(steps):
+            if writer is not None and step % 2 == 0:
+                camera.lookat[:] = [0.0, 0.0, 0.65]
+                renderer.update_scene(replay.data, camera=camera)
+                frame = renderer.render()
+                import cv2
+
+                cv2.putText(frame, f"t={step * replay.dt:.2f}s frame={replay.frame}", (20, 32),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
             replay.control_step()
             if replay.fell:
                 break
     finally:
         replay.close()
+        if writer is not None:
+            writer.release()
+        if renderer is not None:
+            renderer.close()
 
     trace = replay.trace
     fall = next((row for row in trace if row["height"] < FALL_HEIGHT or row["tilt_deg"] > np.degrees(FALL_TILT)), None)
