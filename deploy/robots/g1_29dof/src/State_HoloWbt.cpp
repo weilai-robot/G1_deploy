@@ -18,6 +18,15 @@ State_HoloWbt::State_HoloWbt(int state, std::string name) : FSMState(state, name
         throw std::runtime_error("Invalid holo_wbt segment/limits");
     end_frame_ = std::min(motion_->frames(), start_frame_ + static_cast<std::size_t>(duration / core_->config().dt));
     if (end_frame_ <= start_frame_) throw std::runtime_error("Empty holo_wbt segment");
+    // 预热 ONNX 会话：首次 Run 含图优化与内存分配，可能远超 20 ms 看门狗，会误判为超时而直接阻尼。
+    {
+        holowbt::Snapshot warm;
+        warm.q.fill(0.f);
+        warm.dq.fill(0.f);
+        warm.orientation.setIdentity();
+        warm.angular_velocity.setZero();
+        runner_->act(core_->observe(warm, motion_->frame(start_frame_)));
+    }
     // 正常播完交给 Velocity（零速站立），异常中断才进 Passive 阻尼；顺序决定优先级。
     registered_checks.insert(registered_checks.begin(), {[this]{ return stopped_.load(); }, FSMStringMap.right.at("Passive")});
     registered_checks.insert(registered_checks.begin(), {[this]{ return completed_.load(); }, FSMStringMap.right.at("Velocity")});
@@ -52,10 +61,13 @@ void State_HoloWbt::enter() {
         const auto ref = motion_->frame(start_frame_);
         const auto& cfg = core_->config();
         float error = 0;
+        int worst = 0;
         for (int i = 0; i < holowbt::J; ++i) {
-            const int sdk = cfg.sdk_indices[i];
-            error = std::max(error, std::abs(current.q[sdk] - ref.q[i]));
+            const float joint_error = std::abs(current.q[cfg.sdk_indices[i]] - ref.q[i]);
+            if (joint_error > error) { error = joint_error; worst = i; }
         }
+        spdlog::info("HoloWbt start posture error {:.3f} rad (limit {:.2f}), worst joint #{} ref {:.3f} actual {:.3f}",
+                     error, max_start_error_, worst, ref.q[worst], current.q[cfg.sdk_indices[worst]]);
         if (error > max_start_error_)
             throw std::runtime_error("Initial posture differs from reference by " + std::to_string(error) + " rad; return to FixStand");
         core_->reset(current);
@@ -74,6 +86,7 @@ void State_HoloWbt::enter() {
         }
         running_ = true;
         worker_ = std::thread(&State_HoloWbt::policy_loop, this);
+        spdlog::info("HoloWbt engaged: frames {}..{} at {:.0f} Hz", start_frame_, end_frame_ - 1, 1.0f / cfg.dt);
     } catch (const std::exception& e) {
         stop(e.what());
         damping();
@@ -94,7 +107,7 @@ void State_HoloWbt::policy_loop() {
             if (lowstate->isTimeout()) throw std::runtime_error("LowState timeout");
             auto current = snapshot();
             const float tilt = std::acos(std::clamp((current.orientation * holowbt::Vec::UnitZ()).z(), -1.0f, 1.0f));
-            if (tilt > max_tilt_) throw std::runtime_error("Pelvis tilt limit exceeded");
+            if (tilt > max_tilt_) throw std::runtime_error("Pelvis tilt " + std::to_string(tilt) + " rad exceeds limit");
             auto ref = motion_->frame(frame);
             auto obs = core_->observe(current, ref);
             auto action = runner_->act(obs);
@@ -109,7 +122,9 @@ void State_HoloWbt::policy_loop() {
                 spdlog::info("HoloWbt frame={} clipped={}", frame, core_->clipped());
             }
             deadline += dt;
-            if (Clock::now() > deadline + dt) throw std::runtime_error("Policy missed its 20 ms deadline");
+            // 首拍允许迟到：线程刚创建时调度抖动大，不能因此判死。
+            if (frame != start_frame_ && Clock::now() > deadline + dt)
+                throw std::runtime_error("Policy missed its 20 ms deadline");
             std::this_thread::sleep_until(deadline);
         }
         if (running_) {
