@@ -17,11 +17,13 @@ State_HoloWbt::State_HoloWbt(int state, std::string name) : FSMState(state, name
     blend_s_ = cfg["blend_s"].as<float>(2.5f);
     blend_rate_ = cfg["blend_rate"].as<float>(1.5f);
     prepose_s_ = cfg["prepose_s"].as<float>(3.0f);
+    prepose_kp_scale_ = cfg["prepose_kp_scale"].as<float>(1.0f);
     prepose_only_ = cfg["prepose_only"].as<bool>(false);
     if (start_frame_ >= motion_->frames() || !std::isfinite(duration) || duration <= 0 || duration > 300 ||
         !(max_start_error_ > 0 && max_start_error_ < 0.9f) || !(max_tilt_ > 0 && max_tilt_ < 1.5f) ||
         !(max_target_speed_ > 0 && max_target_speed_ <= 20) || !(blend_s_ >= 0 && blend_s_ <= 10) ||
-        !(blend_rate_ > 0 && blend_rate_ <= 8) || !(prepose_s_ >= 0 && prepose_s_ <= 10))
+        !(blend_rate_ > 0 && blend_rate_ <= 8) || !(prepose_s_ >= 0 && prepose_s_ <= 10) ||
+        !(prepose_kp_scale_ >= 1 && prepose_kp_scale_ <= 4))
         throw std::runtime_error("Invalid holo_wbt segment/limits");
     end_frame_ = std::min(motion_->frames(), start_frame_ + static_cast<std::size_t>(duration / core_->config().dt));
     if (end_frame_ <= start_frame_) throw std::runtime_error("Empty holo_wbt segment");
@@ -59,6 +61,18 @@ holowbt::Snapshot State_HoloWbt::snapshot() {
     return result;
 }
 
+void State_HoloWbt::apply_prepose_gains(bool scaled) {
+    const auto& cfg = core_->config();
+    const float kp_scale = scaled ? prepose_kp_scale_ : 1.0f;
+    // 刚度提高后按 sqrt 比例加阻尼，维持阻尼比，避免高频振荡。
+    const float kd_scale = std::sqrt(kp_scale);
+    for (int i = 0; i < holowbt::J; ++i) {
+        auto& motor = lowcmd->msg_.motor_cmd()[cfg.sdk_indices[i]];
+        motor.kp() = cfg.kp[i] * kp_scale;
+        motor.kd() = cfg.kd[i] * kd_scale;
+    }
+}
+
 void State_HoloWbt::enter() {
     stopped_ = true;
     completed_ = false;
@@ -85,8 +99,6 @@ bool State_HoloWbt::try_enter() {
         for (int i = 0; i < holowbt::J; ++i) {
             auto& motor = lowcmd->msg_.motor_cmd()[cfg.sdk_indices[i]];
             motor.q() = current.q[cfg.sdk_indices[i]];
-            motor.kp() = cfg.kp[i];
-            motor.kd() = cfg.kd[i];
             motor.dq() = 0;
             motor.tau() = 0;
         }
@@ -101,6 +113,9 @@ bool State_HoloWbt::try_enter() {
         prepose_tick_ = 0;
         prepose_ticks_ = std::max(1, static_cast<int>(std::lround(prepose_s_ / cfg.dt)));
         if (!preposing_) core_->reset(current, ref);
+        // 预摆位（插值与保持）期间抬高刚度：训练增益下腰部会因 21 Nm 重力矩垂 0.75 rad，
+        // 实际姿态到不了参考姿态。进入动作状态时由该状态重新写入训练增益。
+        apply_prepose_gains(preposing_ || prepose_only_);
         targets_ = current.q;
         last_command_ = current.q;
         frame_ = start_frame_;
@@ -108,7 +123,8 @@ bool State_HoloWbt::try_enter() {
         blending_ = blend_s_ > 0;
         last_result_ = next_step_ = std::chrono::steady_clock::now();
         stopped_ = false;
-        spdlog::info("HoloWbt engaged: frames {}..{} at {:.0f} Hz{}", start_frame_, end_frame_ - 1, 1.0f / cfg.dt,
+        spdlog::info("HoloWbt engaged: frames {}..{} at {:.0f} Hz, kp x{:.1f}{}", start_frame_, end_frame_ - 1, 1.0f / cfg.dt,
+                     prepose_only_ ? prepose_kp_scale_ : 1.0f,
                      preposing_ ? ", pre-positioning to the reference start pose" : "");
         return true;
     } catch (const std::exception& e) {
@@ -144,7 +160,7 @@ void State_HoloWbt::step_policy() {
                 preposing_ = false;
                 if (prepose_only_) {
                     preposed_ = true;
-                    spdlog::info("HoloWbt pre-position held; press [R1 + X] to start the motion, [R1 + A] to abort");
+                    spdlog::info("HoloWbt pre-position held at raised stiffness; press [R1 + X] to start the motion, [R1 + A] to abort");
                     return;
                 }
                 core_->reset(current, motion_->frame(start_frame_));

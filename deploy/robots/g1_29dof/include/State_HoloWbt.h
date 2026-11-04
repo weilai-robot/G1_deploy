@@ -16,6 +16,7 @@ public:
 private:
     holowbt::Snapshot snapshot();
     void step_policy();
+    void apply_prepose_gains(bool scaled);
     void stop(const std::string& reason);
     void damping();
     bool try_enter();
@@ -35,6 +36,7 @@ private:
     bool blending_ = false, preposing_ = false, preposed_ = false;
     float max_start_error_ = 0.25f, max_tilt_ = 0.85f, max_target_speed_ = 8.0f;
     float blend_s_ = 2.5f, blend_rate_ = 1.5f, prepose_s_ = 3.0f;
-    bool prepose_only_ = false;  // true: 只做预摆位并保持，等按键再进入动作状态
+    float prepose_kp_scale_ = 1.0f;  // 预摆位期间的刚度倍数，抵消腰部/肩部重力下垂
+    bool prepose_only_ = false;      // true: 只做预摆位并保持，等按键再进入动作状态
 };
 REGISTER_FSM(State_HoloWbt)
