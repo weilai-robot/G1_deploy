@@ -77,6 +77,7 @@ FSM:
   FixStand:
     transitions:
       Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
       Holo_Box: LT(2s) + right.on_pressed
     kp:
     - 40.17923847137318
