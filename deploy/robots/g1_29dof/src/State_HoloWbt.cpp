@@ -13,6 +13,7 @@ State_HoloWbt::State_HoloWbt(int state, std::string name) : FSMState(state, name
     const float duration = cfg["duration_s"].as<float>(10.0f);
     max_start_error_ = cfg["max_start_error"].as<float>(0.25f);
     max_tilt_ = cfg["max_tilt"].as<float>(0.85f);
+    max_tilt_error_ = cfg["max_tilt_error"].as<float>(0.7f);
     max_target_speed_ = cfg["max_target_speed"].as<float>(8.0f);
     blend_s_ = cfg["blend_s"].as<float>(2.5f);
     blend_rate_ = cfg["blend_rate"].as<float>(1.5f);
@@ -20,7 +21,8 @@ State_HoloWbt::State_HoloWbt(int state, std::string name) : FSMState(state, name
     prepose_kp_scale_ = cfg["prepose_kp_scale"].as<float>(1.0f);
     prepose_only_ = cfg["prepose_only"].as<bool>(false);
     if (start_frame_ >= motion_->frames() || !std::isfinite(duration) || duration <= 0 || duration > 300 ||
-        !(max_start_error_ > 0 && max_start_error_ < 0.9f) || !(max_tilt_ > 0 && max_tilt_ < 1.5f) ||
+        !(max_start_error_ > 0 && max_start_error_ < 1.3f) || !(max_tilt_ > 0 && max_tilt_ < 1.5f) ||
+        !(max_tilt_error_ > 0.2f && max_tilt_error_ < 1.5f) ||
         !(max_target_speed_ > 0 && max_target_speed_ <= 20) || !(blend_s_ >= 0 && blend_s_ <= 10) ||
         !(blend_rate_ > 0 && blend_rate_ <= 8) || !(prepose_s_ >= 0 && prepose_s_ <= 10) ||
         !(prepose_kp_scale_ >= 1 && prepose_kp_scale_ <= 4))
@@ -145,6 +147,7 @@ void State_HoloWbt::step_policy() {
         if (lowstate->isTimeout()) throw std::runtime_error("LowState timeout");
         auto current = snapshot();
         const float tilt = std::acos(std::clamp((current.orientation * holowbt::Vec::UnitZ()).z(), -1.0f, 1.0f));
+        // 绝对倾角只做粗判：参考动作本身前倾到 70°，真正的失控判据是与参考朝向的偏差。
         if (tilt > max_tilt_) throw std::runtime_error("Pelvis tilt limit exceeded (tilt=" + std::to_string(tilt) + " rad)");
         // 预摆位：先用平滑插值把机器人摆到参考首帧的姿态，再让策略接管。
         if (preposing_) {
@@ -179,6 +182,9 @@ void State_HoloWbt::step_policy() {
             return;
         }
         auto ref = motion_->frame(frame_);
+        const float deviation = core_->reference_tilt_error(current, ref);
+        if (deviation > max_tilt_error_)
+            throw std::runtime_error("Pelvis attitude deviates from reference by " + std::to_string(deviation) + " rad");
         auto obs = core_->observe(current, ref);
         auto action = runner_->act(obs);
         auto policy_target = core_->targets(action, current, max_target_speed_);
@@ -202,8 +208,9 @@ void State_HoloWbt::step_policy() {
         last_command_ = command;
         targets_ = command;
         last_result_ = std::chrono::steady_clock::now();
-        if (frame_ % 50 == 0) {
-            spdlog::info("HoloWbt frame={} clipped={} blend={}", frame_, core_->clipped(), blending_ ? "on" : "off");
+        if (!blending_ && frame_ % 50 == 0) {
+            spdlog::info("HoloWbt frame={} clipped={} blend={} tilt={:.2f} att_err={:.2f}", frame_, core_->clipped(),
+                         blending_ ? "on" : "off", tilt, deviation);
         }
         if (!blending_ && frame_ >= end_frame_) {
             completed_ = true;

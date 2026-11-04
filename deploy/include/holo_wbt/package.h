@@ -282,6 +282,11 @@ public:
     }
     int clipped() const { return clipped_; }
     const Config& config() const { return cfg_; }
+    // 骨盆姿态相对参考朝向的偏差（弧度）。参考动作本身就前倾 70°，绝对倾角不能用来判断摔倒。
+    float reference_tilt_error(const Snapshot& state, const Reference& ref) const {
+        const Quat target = alignment_ * ref.orientations[0];  // body_names[0] = pelvis
+        return 2.0f * std::acos(std::clamp(std::abs(state.orientation.dot(target)), 0.0f, 1.0f));
+    }
     // 预摆位结束时把已下发的姿态同步为内部基准，避免限速器把第一个策略目标当成跳变。
     void adopt_target(const Joints& sdk) { last_target_ = sdk; }
 private:

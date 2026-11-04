@@ -35,6 +35,7 @@ private:
     int prepose_tick_ = 0, prepose_ticks_ = 1;
     bool blending_ = false, preposing_ = false, preposed_ = false;
     float max_start_error_ = 0.25f, max_tilt_ = 0.85f, max_target_speed_ = 8.0f;
+    float max_tilt_error_ = 0.7f;  // 骨盆姿态与参考朝向的最大偏差（弧度）
     float blend_s_ = 2.5f, blend_rate_ = 1.5f, prepose_s_ = 3.0f;
     float prepose_kp_scale_ = 1.0f;  // 预摆位期间的刚度倍数，抵消腰部/肩部重力下垂
     bool prepose_only_ = false;      // true: 只做预摆位并保持，等按键再进入动作状态
