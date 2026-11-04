@@ -340,7 +340,9 @@ def dump_yaml(data: dict, path: Path) -> None:
         import yaml
     except ImportError as error:  # pragma: no cover
         raise SystemExit("PyYAML is required: pip install pyyaml") from error
-    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    # 显式 LF：Windows 的 write_text 会把 \n 转成 \r\n，使 manifest 记录的 sha 与 git 存的 LF 文件不一致。
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
 
 
 def main() -> None:
@@ -409,7 +411,7 @@ def main() -> None:
         "onnx_parity_samples": 64,
         "onnx_max_abs_error": max_error,
     }
-    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     print(f"policy.onnx    {onnx_path}  ({OBS_DIM} -> {ACTION_DIM})")
     print(f"reference.bin  {reference_path}  ({frames} frames @ {fps:g} Hz)")

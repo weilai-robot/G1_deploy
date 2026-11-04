@@ -30,12 +30,23 @@ void init_fsm_state()
     spdlog::info("Connected to robot.");
 }
 
+// FSM 条目名可与类型不同（例如 Holo_Box 的 type 是 HoloWbt），按 type 判定。
+static bool has_fsm_type(const YAML::Node& fsms, const std::string& type)
+{
+    for(auto it = fsms.begin(); it != fsms.end(); ++it)
+    {
+        const auto entry_type = it->second["type"];
+        if(entry_type && entry_type.as<std::string>() == type) return true;
+    }
+    return false;
+}
+
 int main(int argc, char** argv)
 {
     // Load parameters
     auto vm = param::helper(argc, argv);
     const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
-    const bool holo_wbt = bool(param::config["FSM"]["_"]["HoloWbt"]);
+    const bool holo_wbt = has_fsm_type(param::config["FSM"]["_"], "HoloWbt");
     const bool tracking = beyondmimic || holo_wbt;
     if(tracking && vm["network"].as<std::string>().empty()) {
         std::cerr << "Motion tracking states require an explicit --network (lo for simulation).\n";
@@ -65,7 +76,8 @@ int main(int argc, char** argv)
         std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else if(holo_wbt) {
-        std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start HoloWbt.\n";
+        std::cout << "FixStand holds a stiff pose only: press [R1 + X] to hand over to Velocity (balanced stand).\n";
+        std::cout << "Then hold [L2] for 2 seconds and press [Right] to start HoloWbt.\n";
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else {
         std::cout << "And then press [R1 + X] to start controlling the robot.\n";
