@@ -1,6 +1,12 @@
 # copied and modified from https://github.com/NVIDIA/warp/blob/main/.gitattributes
 * text=auto
 *.sh text eol=LF
+# manifest.json 记录 deploy.yaml 的 sha256，必须与检出的字节一致，因此固定为 LF；
+# 同目录的 onnx/bin 是二进制，显式声明避免被文本化。
+deploy/robots/g1_29dof/config/policy/holo_wbt/**/deploy.yaml text eol=LF
+deploy/robots/g1_29dof/config/policy/holo_wbt/**/manifest.json text eol=LF
+deploy/robots/g1_29dof/config/policy/holo_wbt/**/*.onnx binary
+deploy/robots/g1_29dof/config/policy/holo_wbt/**/*.bin binary
 # copied from https://github.com/isaac-sim/IsaacLab/blob/main/.gitattributes
 *.usd filter=lfs diff=lfs merge=lfs -text
 *.dae filter=lfs diff=lfs merge=lfs -text
