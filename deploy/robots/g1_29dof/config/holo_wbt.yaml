@@ -184,6 +184,10 @@ FSM:
     max_start_error: 0.7
     max_tilt: 0.85
     max_target_speed: 8.0
+    # 进入后的过渡：参考帧停在首帧，指令以 blend_rate 的关节速度上限逼近策略目标，
+    # 最多 blend_s 秒。1.5 rad/s 下从站立到参考首帧约 1 秒。
+    blend_s: 2.5
+    blend_rate: 1.5
   Velocity:
     transitions:
       Passive: LT + B.on_pressed
