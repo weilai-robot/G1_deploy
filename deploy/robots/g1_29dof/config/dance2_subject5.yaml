@@ -143,45 +143,49 @@ FSM:
     ts:
     - 0
     - 3
-    # SDK joint order; equals reference frame 0 of dance2_subject5_22s.
+    # SDK joint order; equals reference frame 495 (~9.9 s in), where the arms
+    # already hang down and the knees stay close to the stock stance.
     qs:
     - []
-    - - -0.0273
-      - 0.0134
-      - 0.0392
-      - 0.1583
-      - -0.2046
-      - -0.0194
-      - -0.071
-      - -0.0613
-      - -0.0616
-      - 0.2251
-      - -0.2289
-      - 0.0432
-      - -0.02
-      - -0.011
-      - -0.0425
-      - 0.5371
-      - 1.5612
-      - 0.2025
-      - 1.3473
-      - -0.0498
-      - 0.4365
-      - 0.1664
-      - 0.7373
-      - -1.5631
-      - -0.5857
-      - 1.2261
-      - 0.0633
-      - 0.3408
-      - -0.1614
+    - - -0.0652
+      - 0.2421
+      - 0.0464
+      - 0.7396
+      - -0.0899
+      - -0.1215
+      - -0.1956
+      - -0.1902
+      - -0.3911
+      - 0.3371
+      - -0.1517
+      - 0.0226
+      - -0.0509
+      - 0.0736
+      - 0.028
+      - 0.0127
+      - 0.1416
+      - -0.1911
+      - 1.0348
+      - 1.107
+      - 0.4215
+      - -0.0256
+      - 0.1099
+      - -0.1318
+      - 0.0727
+      - 0.8603
+      - -0.8094
+      - 0.3259
+      - 0.0092
   BeyondMimic:
     transitions:
       Passive: LT + B.on_pressed
     policy_dir: config/policy/beyondmimic/dance2_subject5_22s
-    start_frame: 0
+    start_frame: 495
     duration_s: 10.0
+    # Starting from frame 495 leaves the arms down, so the pre-pose matches the
+    # stock stance; the leg-odometry anchor error then peaks near 0.47 m in the
+    # MuJoCo FSM replay (vs 0.19 m from frame 0), hence the looser guard.
     max_start_error: 0.6
     max_tilt: 0.85
     max_target_speed: 8.0
-    max_anchor_error: 0.35
+    max_anchor_error: 0.5
