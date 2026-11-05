@@ -182,8 +182,8 @@ FSM:
       Passive: RB + A.on_pressed      # 终止：立即进入阻尼
       Holo_Box: RB + X.on_pressed     # 启动动作
     policy_dir: config/policy/holo_wbt/czy_box
-    start_frame: 107
-    duration_s: 4.4
+    start_frame: 190
+    duration_s: 3.6
     max_start_error: 1.0
     max_tilt: 1.0
     max_tilt_error: 0.7
@@ -199,9 +199,9 @@ FSM:
       Passive: RB + A.on_pressed      # 终止：立即进入阻尼
       Velocity: RB + X.on_pressed     # 提前结束动作，交回站立
     policy_dir: config/policy/holo_wbt/czy_box
-    start_frame: 107
-    duration_s: 4.4
-    # 第 107 帧相对 FixStand 站姿的最大偏差 0.73 rad（上肢髋/肩），腰部仅 0.19 rad。
+    start_frame: 190
+    duration_s: 3.6
+    # 第 190 帧：抱起箱子刚站直，倾角 22.7°，CoM 裕度 13.9 cm（该段最大）。
     max_start_error: 1.0
     # 绝对倾角只做粗判：参考动作骨盆前倾到 70°(1.23 rad)，真正的失控判据是 att_err。
     max_tilt: 1.45
