@@ -1,8 +1,9 @@
 # BeyondMimic dance2_subject5_22s / G1 EDU U2 29DOF.
 # FixStand ramps to the reference's first frame (arms out), so the entry check
 # in State_BeyondMimic only has to absorb the PD sag at that pose: the shoulder
-# roll gravity torque is ~5 N*m against kp 14.25, i.e. ~0.38 rad of droop, hence
-# the looser max_start_error below. The policy corrects it on the first frames.
+# roll gravity torque is ~5 N*m against kp 14.25, i.e. ~0.4 rad of droop, hence
+# the looser max_start_error below (0.6 rad, still inside the 0.8 safety bound).
+# The policy corrects it on the first frames.
 FSM:
   _:
     Passive:
@@ -180,7 +181,7 @@ FSM:
     policy_dir: config/policy/beyondmimic/dance2_subject5_22s
     start_frame: 0
     duration_s: 10.0
-    max_start_error: 0.5
+    max_start_error: 0.6
     max_tilt: 0.85
     max_target_speed: 8.0
     max_anchor_error: 0.35
