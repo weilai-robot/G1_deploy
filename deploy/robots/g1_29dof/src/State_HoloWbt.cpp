@@ -89,11 +89,14 @@ bool State_HoloWbt::try_enter() {
         const auto& cfg = core_->config();
         float error = 0;
         int worst = 0;
-        for (int i = 0; i < holowbt::J; ++i) {
+        // 只检查腿和腰（0..14）：手臂在预摆位里摆到参考姿态即可，不影响平衡，也不该拦住入场。
+        // 参考第 190 帧的肘部与站姿差 1.0 rad，全关节比较会直接把入场拒掉。
+        constexpr int PostureJoints = 15;
+        for (int i = 0; i < PostureJoints; ++i) {
             const float joint_error = std::abs(current.q[cfg.sdk_indices[i]] - ref.q[i]);
             if (joint_error > error) { error = joint_error; worst = i; }
         }
-        spdlog::info("HoloWbt start posture error {:.3f} rad (limit {:.2f}), worst joint #{} ({}) ref {:.3f} actual {:.3f}, blend {:.2f} s at {:.2f} rad/s",
+        spdlog::info("HoloWbt start posture error {:.3f} rad (limit {:.2f}, legs+waist), worst joint #{} ({}) ref {:.3f} actual {:.3f}, blend {:.2f} s at {:.2f} rad/s",
                      error, max_start_error_, worst, cfg.sdk_indices[worst], ref.q[worst],
                      current.q[cfg.sdk_indices[worst]], blend_s_, blend_rate_);
         if (error > max_start_error_)
