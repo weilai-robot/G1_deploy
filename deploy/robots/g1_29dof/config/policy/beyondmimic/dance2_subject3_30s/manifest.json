@@ -1,0 +1,15 @@
+{
+  "checkpoint": "model_2999.pt",
+  "checkpoint_sha256": "f830d440f0e31ae00be94feee7d7e1878692820699872cb8c8f701f04bfe08f4",
+  "motion": "dance2_subject3_30s.npz",
+  "motion_sha256": "99af6662c0f1911eed7d70571497422084156d4407455073d25455d5296d846c",
+  "policy_sha256": "750f2640f83ffd73280a33e6cdf943a04a84e6c0c7d03e9834531b4add19f921",
+  "reference_sha256": "5d30d2b3f6f265aad4317374d0062dd058091028def67db81559841353835ef5",
+  "urdf_sha256": "dbc8471004e9b0b85c27a4ebc1f0d90a727c1cf7ca9ef507b805596f2004d64b",
+  "deploy_yaml_sha256": "f3e81555429c523f02a3280f411e06f3d4ea5448c9cacb1fbf78c3f9cdb6e549",
+  "frames": 1499,
+  "fps": 50.0,
+  "normalizer_epsilon": 0.01,
+  "onnx_parity_samples": 64,
+  "onnx_max_abs_error": 1.430511474609375e-06
+}

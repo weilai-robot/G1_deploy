@@ -1,8 +1,8 @@
 # G1 EDU U2：远程登录后，从 git pull 到真机试运行
 
-适用对象：G1 EDU U2、29DOF，运行本仓库的 BeyondMimic `dance_zui` 模型。
+适用对象：G1 EDU U2、29DOF，运行本仓库的 BeyondMimic `dance2_subject3_30s` 模型（仓库中另保留 `dance_zui`）。
 
-**当前默认只执行最初 10 秒，结束后进入阻尼，需要吊装承重。10 秒闭环仿真已通过，尚未进行真机测试，整段动作未通过部署验证。** 本文的启动操作用于吊装试验。
+**当前配置执行整段 29.98 s / 1499 帧，结束后进入阻尼，需要吊装承重。尚未进行真机测试，整段动作未通过真机验证。** 本文的启动操作用于吊装试验。
 
 ## 第 1 步：远程登录 G1 的开发电脑
 
@@ -46,13 +46,14 @@ cd ~/G1_deploy
 cd ~/G1_deploy
 uname -m
 cat /etc/os-release
-python3 tools/check_beyondmimic_package.py
+python3 tools/check_beyondmimic_package.py \
+  deploy/robots/g1_29dof/config/policy/beyondmimic/dance2_subject3_30s
 ```
 
 预期看到：
 
 ```text
-PASS: policy and reference checksums, 160 observations / 29 actions, 50 Hz, 11384 frames
+PASS: policy and reference checksums, 160 observations / 29 actions, 50 Hz, 1499 frames
 ```
 
 `PASS` 表示模型和参考动作文件完整。模型已在仓库中，不需要在 G1 重新导出，也不需要安装 Isaac Lab、训练仓库、PyTorch 或 ROS。
@@ -169,7 +170,7 @@ ip -4 addr show "$G1_NET"
 ```bash
 cd ~/G1_deploy/deploy/robots/g1_29dof
 ./build/g1_ctrl --network "$G1_NET" --domain 0 \
-  --config config/beyondmimic.yaml --log
+  --config config/dance2_subject3_30s.yaml --log
 ```
 
 保持这个终端运行。正常连接后，应依次看到相关提示：
@@ -186,11 +187,12 @@ FSM: Start Passive
 
 | 操作 | 预期结果 |
 |---|---|
-| 按 `L2 + 方向键上` | 进入 `FixStand`，用 3 秒过渡到训练默认站姿 |
-| 等待至少 3 秒，保持防跌落保护，让双脚稳定接触平整地面 | 给腿部里程计提供有效的接触条件 |
-| 持续按住 `L2` 至少 2 秒，再按 `方向键右` | 进入 `BeyondMimic`，开始默认 10 秒策略段 |
-| 按 `L2 + B` | 退出策略，进入 `Passive` 阻尼 |
-| 默认 10 秒结束 | 自动进入阻尼，需要吊装承重 |
+| 按 `L2 + 方向键上` | 进入 `FixStand`，用 3 秒过渡到参考第 0 帧姿态（手臂下垂、右髋 roll −0.34），随后保持 |
+| 保持吊装张力，让双脚平整、稳定地踩实地面，等 2–3 秒 | 为腿部里程计提供有效接触；悬空或半悬空会让估计失真 |
+| 持续按住 `L2` 至少 2 秒，再按 `方向键右` | 进入 `BeyondMimic`；入场检查全部 29 关节偏差 ≤ 0.6 rad，通过后以 50 Hz 运行 1499 帧 |
+| 运行中重点盯 23–25 s（frame 1150–1250） | 仿真里唯一报警的区段，手放在 `L2 + B` 上 |
+| 按 `L2 + B` | 任何时候退出策略，进入 `Passive` 阻尼 |
+| 跑到 29.98 s（frame 1498） | 自动进入阻尼，需要吊装承重 |
 
 不要在双脚悬空时开始本策略，腿部里程计需要支撑脚接地。此配置不使用 `R1 + X` 启动，也不通过摇杆改变参考动作。
 
@@ -214,7 +216,7 @@ tail -n 100 ~/G1_deploy/deploy/robots/g1_29dof/log/log.txt
 | `The other process is using the lowcmd channel` | 确认原控制程序或其他部署进程已退出，再重新启动 |
 | `Initial posture differs from reference` | 保持保护，重新进入 `FixStand`，等待站姿稳定后再切换 |
 | 策略刚进入就回到 `Passive` | 查看紧邻的 `BeyondMimic -> Passive` 原因，核对超时、IMU、姿态及估计误差；不要反复直接重启策略 |
-| `Segment completed` | 正常的默认 10 秒结束，并非程序故障 |
+| `Segment completed` | 正常的整段 29.98 s 结束，并非程序故障 |
 
 ## 以后每次 git pull 更新后怎么做
 

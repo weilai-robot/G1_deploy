@@ -1,0 +1,208 @@
+# BeyondMimic dance2_subject3_30s / G1 EDU U2 29DOF -- full clip (29.98 s).
+# Trained with Tracking-Flat-G1-Dance-v0 (episode_length_s = 29.0, fit_episode_to_motion):
+# one episode spans the whole 1499-frame clip instead of the 10 s default. The policy
+# reaches the end of the clip, so the action plays the reference from frame 0 to the
+# last frame.
+#
+# Verification (czy/analysis/g1_exp2_curves/):
+#   - MuJoCo truth-state policy replay: 1499/1499 frames, min height 0.73 m, max tilt
+#     27.4 deg, anchor error <= 0.25 m.
+#   - MuJoCo truth-state FSM replay (Passive -> FixStand -> this state, harness released):
+#     1499/1499 frames, min height 0.73 m, max tilt 26.8 deg, anchor error <= 0.25 m.
+#   - MuJoCo FSM replay with the deployment's contact leg odometry is simulator-dependent:
+#     the capsule soles of the training MJCF slide (their foot-floor <pair> friction is
+#     0.8), while the leg odometry assumes a non-slipping support foot. Do not take its
+#     frame count as a hardware prediction; truth-state runs prove the policy tracks the
+#     whole clip.
+# Keep the gantry attached and be ready on [L2 + B] for the first runs.
+#
+# Single-stage startup (no pre-pose state):
+#   [L2 + UP]           FixStand: current pose -> the reference's frame-0 pose over 3 s
+#                       (arms hang down, right hip roll -0.344), then held
+#   [L2 2s + RIGHT]     BeyondMimic: entry check over all 29 joints (limit 0.6 rad), then
+#                       the 1499-frame clip from frame 0 at 50 Hz with the training gains
+#   [L2 + B]            abort to Passive damping at any point
+#   segment end         Passive damping; the gantry must take the weight
+FSM:
+  _:
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    BeyondMimic:
+      id: 201
+      type: BeyondMimic
+  Passive:
+    transitions:
+      FixStand: LT + up.on_pressed
+    mode:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    kd:
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+  FixStand:
+    transitions:
+      Passive: LT + B.on_pressed
+      BeyondMimic: LT(2s) + right.on_pressed
+    kp:
+    - 40.17923847137318
+    - 99.09842777666113
+    - 40.17923847137318
+    - 99.09842777666113
+    - 28.50124619574858
+    - 28.50124619574858
+    - 40.17923847137318
+    - 99.09842777666113
+    - 40.17923847137318
+    - 99.09842777666113
+    - 28.50124619574858
+    - 28.50124619574858
+    - 40.17923847137318
+    - 28.50124619574858
+    - 28.50124619574858
+    - 14.25062309787429
+    - 14.25062309787429
+    - 14.25062309787429
+    - 14.25062309787429
+    - 14.25062309787429
+    - 16.77832748089279
+    - 16.77832748089279
+    - 14.25062309787429
+    - 14.25062309787429
+    - 14.25062309787429
+    - 14.25062309787429
+    - 14.25062309787429
+    - 16.77832748089279
+    - 16.77832748089279
+    kd:
+    - 2.5578897650279457
+    - 6.3088018534966395
+    - 2.5578897650279457
+    - 6.3088018534966395
+    - 1.814445686584846
+    - 1.814445686584846
+    - 2.5578897650279457
+    - 6.3088018534966395
+    - 2.5578897650279457
+    - 6.3088018534966395
+    - 1.814445686584846
+    - 1.814445686584846
+    - 2.5578897650279457
+    - 1.814445686584846
+    - 1.814445686584846
+    - 0.907222843292423
+    - 0.907222843292423
+    - 0.907222843292423
+    - 0.907222843292423
+    - 0.907222843292423
+    - 1.06814150219
+    - 1.06814150219
+    - 0.907222843292423
+    - 0.907222843292423
+    - 0.907222843292423
+    - 0.907222843292423
+    - 0.907222843292423
+    - 1.06814150219
+    - 1.06814150219
+    ts:
+    - 0
+    - 3
+    qs:
+    - []
+    # Reference frame 0 in SDK (motor) order: arms down, right hip roll -0.344.
+    - - 0.036554
+      - 0.013113
+      - 0.082659
+      - 0.348689
+      - -0.397142
+      - -0.091035
+      - -0.297875
+      - -0.343904
+      - 0.097994
+      - 0.394633
+      - -0.100339
+      - 0.231544
+      - -0.005332
+      - -0.048278
+      - 0.07215
+      - 0.114842
+      - 0.095608
+      - -0.20136
+      - 0.620923
+      - 0.594038
+      - 0.32031
+      - 0.217648
+      - 0.284601
+      - -0.095418
+      - 0.100145
+      - 0.663005
+      - -0.788828
+      - 0.417847
+      - -0.065713
+  BeyondMimic:
+    transitions:
+      Passive: LT + B.on_pressed
+    policy_dir: config/policy/beyondmimic/dance2_subject3_30s
+    # Frame 0 is the clip's natural entry pose (legs 0.35 rad off the stance, arms down);
+    # the whole 1499-frame reference is played, no segment trim.
+    start_frame: 0
+    duration_s: 29.98
+    max_start_error: 0.6
+    max_tilt: 0.85
+    max_target_speed: 8.0
+    max_anchor_error: 0.5

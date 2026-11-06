@@ -1,8 +1,8 @@
 # G1_deploy：G1 EDU U2 真机操作步骤
 
-本仓库基于宇树官方 `unitree_rl_lab`，用于在 **G1 EDU U2（29DOF）** 上部署 BeyondMimic `dance_zui` 模型。模型和参考动作已包含在仓库中。
+本仓库基于宇树官方 `unitree_rl_lab`，用于在 **G1 EDU U2（29DOF）** 上部署 BeyondMimic `dance2_subject3_30s` 模型（仓库中另保留 `dance_zui`）。模型和参考动作已包含在仓库中。
 
-**当前为默认 10 秒的吊装试验版本：已完成仿真和编译检查，尚未进行真机测试，整段动作未通过部署验证。试验结束会进入阻尼，需要吊装承重。**
+**当前为整段 29.98 s / 1499 帧的吊装试验版本：已完成仿真和编译检查，尚未进行真机测试。试验结束会进入阻尼，需要吊装承重。**
 
 先通过现有 SSH 或远程终端登录 **G1 机载开发电脑**。以下终端命令均在 G1 上执行，项目目录以 `~/G1_deploy` 为例。
 
@@ -32,13 +32,14 @@ cd ~/G1_deploy
 cd ~/G1_deploy
 uname -m
 cat /etc/os-release
-python3 tools/check_beyondmimic_package.py
+python3 tools/check_beyondmimic_package.py \
+  deploy/robots/g1_29dof/config/policy/beyondmimic/dance2_subject3_30s
 ```
 
 模型检查应输出：
 
 ```text
-PASS: policy and reference checksums, 160 observations / 29 actions, 50 Hz, 11384 frames
+PASS: policy and reference checksums, 160 observations / 29 actions, 50 Hz, 1499 frames
 ```
 
 `aarch64`/`arm64` 表示 ARM64，`x86_64` 表示 Intel/AMD。构建脚本会选择对应的运行库。真机运行不需要安装 Isaac Lab、训练仓库、PyTorch 或 ROS。
@@ -128,7 +129,7 @@ ip -4 addr show "$G1_NET"
 ```bash
 cd ~/G1_deploy/deploy/robots/g1_29dof
 ./build/g1_ctrl --network "$G1_NET" --domain 0 \
-  --config config/beyondmimic.yaml --log
+  --config config/dance2_subject3_30s.yaml --log
 ```
 
 正常连接后应看到：
@@ -145,11 +146,12 @@ FSM: Start Passive
 
 | 顺序 | 操作 | 结果 |
 |---|---|---|
-| 1 | 按 **L2 + 方向键上** | 进入 FixStand，用 3 秒过渡到训练默认站姿 |
-| 2 | 等待至少 3 秒，让双脚稳定接触平整地面，保持防跌落保护 | 为腿部里程计提供接触条件 |
-| 3 | 持续按住 **L2 至少 2 秒**，再按 **方向键右** | 启动 BeyondMimic，运行默认 10 秒策略段 |
-| 4 | 按 **L2 + B** | 退出策略，进入阻尼 |
-| 5 | 默认 10 秒结束 | 自动进入阻尼，需要吊装承重 |
+| 1 | 按 **L2 + 方向键上** | 进入 FixStand，用 3 秒过渡到参考第 0 帧姿态（手臂下垂、右髋 roll −0.34），随后保持 |
+| 2 | 保持吊装张力，让双脚平整、稳定地踩实地面，等 2–3 秒 | 腿部里程计依赖支撑脚接触；悬空或半悬空会让估计失真 |
+| 3 | 按住 **L2 至少 2 秒**，再按 **方向键右** | 进入 BeyondMimic；入场检查全部 29 关节偏差 ≤ 0.6 rad，通过后以 50 Hz 运行 1499 帧 |
+| 4 | 运行中重点盯 **23–25 s**（frame 1150–1250） | 仿真里唯一报警的区段，手放在 **L2 + B** 上 |
+| 5 | 按 **L2 + B** | 任何时候退回 Passive 阻尼 |
+| 6 | 跑到 29.98 s（frame 1498） | 自动进入阻尼，不会自己站住，吊装要接住 |
 
 双脚悬空时不启动本策略。当前配置通过参考动作控制，不使用 `R1 + X` 启动，也不通过摇杆改变动作。
 

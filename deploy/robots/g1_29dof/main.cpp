@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 
     std::cout << "Press [L2 + Up] to enter FixStand mode.\n";
     if(beyondmimic) {
-        std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
+        std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start the motion.\n";
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else if(holo_wbt) {
         std::cout << "Hold [L2] 2s + [Right] -> pre-pose (the reference start pose, held still).\n";

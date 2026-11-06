@@ -7,6 +7,12 @@ deploy/robots/g1_29dof/config/policy/holo_wbt/**/deploy.yaml text eol=LF
 deploy/robots/g1_29dof/config/policy/holo_wbt/**/manifest.json text eol=LF
 deploy/robots/g1_29dof/config/policy/holo_wbt/**/*.onnx binary
 deploy/robots/g1_29dof/config/policy/holo_wbt/**/*.bin binary
+# BeyondMimic packages: the manifest records the sha256 of the checked-out bytes, and the
+# robot is Linux. Pin the text files to LF so a Windows checkout cannot break the check.
+deploy/robots/g1_29dof/config/policy/beyondmimic/**/deploy.yaml text eol=LF
+deploy/robots/g1_29dof/config/policy/beyondmimic/**/manifest.json text eol=LF
+deploy/robots/g1_29dof/config/policy/beyondmimic/**/*.onnx binary
+deploy/robots/g1_29dof/config/policy/beyondmimic/**/*.bin binary
 # copied from https://github.com/isaac-sim/IsaacLab/blob/main/.gitattributes
 *.usd filter=lfs diff=lfs merge=lfs -text
 *.dae filter=lfs diff=lfs merge=lfs -text
