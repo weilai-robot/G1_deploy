@@ -182,8 +182,10 @@ FSM:
       Passive: RB + A.on_pressed      # 终止：立即进入阻尼
       Holo_Box: RB + X.on_pressed     # 启动动作
     policy_dir: config/policy/holo_wbt/czy_box
-    start_frame: 190
-    duration_s: 3.6
+    # exp_4 策略的参考是 166 段搬运片段中的 sub10_largebox_049（index 0，89 帧 1.78s）：
+    # exp_4 策略的参考是 166 段搬运片段中的 sub12_largebox_046（index 53，230 帧 4.60s）：
+    # 裁剪段起点即直立提箱、即将开始行走的姿态。
+    duration_s: 4.60
     max_start_error: 1.0
     max_tilt: 1.0
     max_tilt_error: 0.7
@@ -199,11 +201,12 @@ FSM:
       Passive: RB + A.on_pressed      # 终止：立即进入阻尼
       Velocity: RB + X.on_pressed     # 提前结束动作，交回站立
     policy_dir: config/policy/holo_wbt/czy_box
-    start_frame: 190
-    duration_s: 3.6
-    # 第 190 帧：抱起箱子刚站直，倾角 22.7°，CoM 裕度 13.9 cm（该段最大）。
+    # 与 Holo_Prepose 同一段参考：从片段首帧（直立提箱）走到片段尾。
+    # 与 Holo_Prepose 同一段参考：从片段首帧（直立提箱）走到片段尾。
+    duration_s: 4.60
+    # 第 0 帧：直立提箱起步帧，姿态安静（倾角约 3°，骨盆 0.749 m）。
     max_start_error: 1.0
-    # 绝对倾角只做粗判：参考动作骨盆前倾到 70°(1.23 rad)，真正的失控判据是 att_err。
+    # 绝对倾角只做粗判：搬运片段全程直立，真正的失控判据是 att_err。
     max_tilt: 1.45
     max_tilt_error: 0.7
     max_target_speed: 8.0

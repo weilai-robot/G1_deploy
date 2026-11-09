@@ -310,6 +310,12 @@ def build_deploy_config(checkpoint_config: dict, joint_names: list[str], kinemat
     for index, name in enumerate(joint_names):
         if not lower[index] < default[index] < upper[index]:
             raise ValueError(f"default position of '{name}' is outside its limits")
+    # 转子惯量与关节摩擦不参与真机控制（硬件自带），但 sim-to-sim 复现训练动力学必须一致，
+    # 所以随包记录；C++ load_config 只读取已知字段，会忽略这两个键。
+    armature = [float(value) for value in robot["dof_armature_list"]]
+    friction = [float(value) for value in robot["dof_joint_friction_list"]]
+    if not (len(armature) == len(friction) == ACTION_DIM):
+        raise ValueError("robot armature/friction lists are not 29 wide")
     return {
         "format": DEPLOY_FORMAT,
         "model": "policy.onnx",
@@ -329,6 +335,8 @@ def build_deploy_config(checkpoint_config: dict, joint_names: list[str], kinemat
         "effort_limit": effort,
         "joint_lower": lower,
         "joint_upper": upper,
+        "dof_armature": armature,
+        "dof_friction": friction,
         "kinematics": kinematics,
         "normalizer": {"embedded": True, "epsilon": eps},
         "reference_frames": frames,
@@ -348,10 +356,16 @@ def dump_yaml(data: dict, path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--checkpoint", type=Path, required=True, help="holosoma model_XXXXX.pt")
-    parser.add_argument("--motion", type=Path, required=True, help="holosoma motion npz used for training")
+    parser.add_argument("--motion", type=Path, default=None,
+                        help="holosoma motion npz used as the reference; default: resolved from the checkpoint "
+                        "(motion_dir segment --motion-index, or the single motion_file)")
+    parser.add_argument("--motion-dir", type=Path, default=None,
+                        help="directory of carry-segment npz files; requires --motion-index")
+    parser.add_argument("--motion-index", type=int, default=None,
+                        help="segment of --motion-dir (or of the checkpoint's training motion_dir) to package")
     parser.add_argument("--output", type=Path, required=True, help="policy package directory")
-    parser.add_argument("--holosoma-root", type=Path, default=Path("e:/G1/holosoma"),
-                        help="holosoma checkout, used to locate the training URDF")
+    parser.add_argument("--holosoma-root", type=Path, default=Path("e:/G1/G1_holo_sama/holosoma"),
+                        help="holosoma checkout, used to locate the training URDF and motion_dir")
     parser.add_argument("--urdf", type=Path, default=None, help="override the URDF used for kinematics")
     parser.add_argument("--normalizer-eps", type=float, default=0.01,
                         help="EmpiricalNormalization epsilon used during training")
@@ -369,8 +383,49 @@ def main() -> None:
     if len(joint_names) != ACTION_DIM or sorted(joint_names) != sorted(SDK_JOINT_ORDER):
         raise ValueError("robot joint names are not the Unitree G1 29DOF set")
 
+    # 参考动作解析：显式 --motion 优先；--motion-dir + --motion-index 次之；
+    # 都没给时按 checkpoint 的训练配置回退（motion_dir 优先于 motion_file，与训练侧一致）。
+    motion_cfg = config["command"]["setup_terms"]["motion_command"]["params"]["motion_config"]
+    motion_dir_used = None
+    motion_index_used = None
+    if arguments.motion is not None:
+        if arguments.motion_dir is not None or arguments.motion_index is not None:
+            parser.error("--motion cannot be combined with --motion-dir/--motion-index")
+        motion_path = arguments.motion
+    elif arguments.motion_dir is not None:
+        if arguments.motion_index is None:
+            parser.error("--motion-dir requires --motion-index")
+        segments = sorted(arguments.motion_dir.glob("*.npz"))
+        if not segments:
+            raise FileNotFoundError(f"No .npz files under {arguments.motion_dir}")
+        if not 0 <= arguments.motion_index < len(segments):
+            raise IndexError(f"--motion-index {arguments.motion_index} outside 0..{len(segments) - 1}")
+        motion_path = segments[arguments.motion_index]
+        motion_index_used = arguments.motion_index
+    elif arguments.motion_index is not None:
+        training_dir = motion_cfg.get("motion_dir") or ""
+        if not training_dir:
+            raise ValueError("checkpoint has no motion_dir; pass --motion <npz> instead of --motion-index")
+        segments = sorted((arguments.holosoma_root / "src/holosoma" / training_dir).glob("*.npz"))
+        if not segments:
+            raise FileNotFoundError(f"No .npz files under {arguments.holosoma_root / 'src/holosoma' / training_dir}")
+        if not 0 <= arguments.motion_index < len(segments):
+            raise IndexError(f"--motion-index {arguments.motion_index} outside 0..{len(segments) - 1}")
+        motion_path = segments[arguments.motion_index]
+        motion_dir_used = training_dir
+        motion_index_used = arguments.motion_index
+    else:
+        training_dir = motion_cfg.get("motion_dir") or ""
+        if training_dir:
+            raise ValueError(
+                f"checkpoint trains on motion_dir '{training_dir}'; pass --motion <npz> or --motion-dir/--motion-index"
+            )
+        motion_path = arguments.holosoma_root / "src/holosoma" / motion_cfg["motion_file"]
+        motion_index_used = None
+    motion_path = motion_path.resolve()
+
     policy = build_policy(checkpoint, arguments.normalizer_eps)
-    q, dq, pos, quat, fps, motion_joints, _ = load_reference(arguments.motion)
+    q, dq, pos, quat, fps, motion_joints, _ = load_reference(motion_path)
     if motion_joints != joint_names:
         raise ValueError("motion joint order differs from the checkpoint robot joint order")
 
@@ -387,7 +442,7 @@ def main() -> None:
     export_onnx(policy, onnx_path, arguments.opset)
     max_error = check_onnx_parity(policy, onnx_path)
     frames = write_reference(reference_path, q, dq, pos, quat, fps)
-    deploy = build_deploy_config(config, joint_names, kinematics, arguments.motion, frames, fps,
+    deploy = build_deploy_config(config, joint_names, kinematics, motion_path, frames, fps,
                                  arguments.normalizer_eps)
     deploy_path = output / "deploy.yaml"
     dump_yaml(deploy, deploy_path)
@@ -396,8 +451,10 @@ def main() -> None:
         "checkpoint": arguments.checkpoint.name,
         "checkpoint_sha256": sha256(arguments.checkpoint),
         "iteration": int(checkpoint.get("iter", -1)),
-        "motion": arguments.motion.name,
-        "motion_sha256": sha256(arguments.motion),
+        "motion": motion_path.name,
+        "motion_sha256": sha256(motion_path),
+        "motion_dir": motion_dir_used,
+        "motion_index": motion_index_used,
         "urdf": str(urdf),
         "urdf_sha256": sha256(urdf),
         "policy_sha256": sha256(onnx_path),

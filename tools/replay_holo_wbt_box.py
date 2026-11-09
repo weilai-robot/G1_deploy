@@ -95,6 +95,13 @@ class Replay:
             raise ValueError("joints missing from the training URDF")
         self.qpos_ids = np.array([self.model.jnt_qposadr[j] for j in joint_ids])
         self.qvel_ids = np.array([self.model.jnt_dofadr[j] for j in joint_ids])
+        # 训练时的转子惯量/关节摩擦随包记录（deploy.yaml）；缺少它们时 200 Hz PD 会数值爆炸。
+        armature = self.config.get("dof_armature")
+        if armature is not None:
+            self.model.dof_armature[self.qvel_ids] = np.asarray(armature, dtype=np.float64)
+        friction = self.config.get("dof_friction")
+        if friction is not None:
+            self.model.dof_frictionloss[self.qvel_ids] = np.asarray(friction, dtype=np.float64)
         self.actuator_ids = np.array([mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
                                       for name in self.names])
         self.root_body = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "pelvis")
