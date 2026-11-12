@@ -35,7 +35,10 @@ int main(int argc, char** argv)
     auto vm = param::helper(argc, argv);
     const auto config_path = vm.count("config")
         ? std::filesystem::absolute(vm["config"].as<std::string>())
-        : param::config_dir / "config.yaml";
+        : param::config_dir / "beyondmimic.yaml";
+    if (!vm.count("config")) {
+        param::config = YAML::LoadFile(config_path.string());
+    }
     spdlog::info("FSM configuration: {}", config_path.string());
     const auto stand = param::config["FSM"]["FixStand"];
     if (stand) {

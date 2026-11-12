@@ -42,7 +42,7 @@ tools/verify_beyondmimic.py                       使用实际 C++ 核心做 MuJ
 tools/build_g1_deploy.sh                          Linux 编译与架构选择
 ```
 
-原来的 `config/config.yaml` 和官方预训练策略仍可单独使用。本次接入需要明确传入 `--config`。
+G1 29DOF 控制器默认加载 `config/beyondmimic.yaml`，使用原 `dance_zui` 舞蹈，也可显式传入 `--config`。原来的 `config/config.yaml` 和官方预训练策略仍可通过 `--config config/config.yaml` 单独使用。新 `guohua_show_dance` 只通过其独立配置显式选择。
 
 ## 2. 在机载开发电脑准备项目
 

@@ -2,6 +2,8 @@
 
 本仓库基于宇树官方 `unitree_rl_lab`，用于在 **G1 EDU U2（29DOF）** 上部署 BeyondMimic `dance_zui` 模型。模型和参考动作已包含在仓库中。
 
+G1 29DOF 控制器未指定 `--config` 时，默认加载 `config/beyondmimic.yaml`，选择原 `dance_zui` 舞蹈。显式 `--config` 可覆盖默认选择；原速度／Mimic 状态机需指定 `--config config/config.yaml`。
+
 **当前为默认 10 秒的吊装试验版本：已完成仿真和编译检查，尚未进行真机测试，整段动作未通过部署验证。试验结束会进入阻尼，需要吊装承重。**
 
 另已接入独立的 `guohua_show_dance` 模型包，输入输出和遥控按键与现有舞蹈一致，使用 `config/beyondmimic_guohua_show_dance.yaml` 选择。该舞蹈的部署闭环仿真未通过，目前仅供离线验证，不用于真机测试；首帧也不同于原站姿。模型来源、使用方法和结果见 [新舞蹈说明](docs/guohua_show_dance.md)。以下真机步骤仍针对 `dance_zui`。
