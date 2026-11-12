@@ -25,7 +25,11 @@ if [[ ! -f "$runtime_dir/include/onnxruntime_cxx_api.h" || ! -f "$runtime_dir/li
   fi
   mv "$download_dir/onnxruntime-linux-$runtime_arch-$runtime_version" "$runtime_dir"
 fi
-python3 "$repo_dir/tools/check_beyondmimic_package.py"
+for package in "$repo_dir/deploy/robots/g1_29dof/config/policy/beyondmimic/"*; do
+  if [[ -f "$package/manifest.json" ]]; then
+    python3 "$repo_dir/tools/check_beyondmimic_package.py" "$package"
+  fi
+done
 cmake -S "$repo_dir/deploy/robots/g1_29dof" -B "$repo_dir/deploy/robots/g1_29dof/build" \
   -DCMAKE_BUILD_TYPE=Release -DONNXRUNTIME_ROOT="$runtime_dir" \
   -DONNXRUNTIME_INCLUDE_DIR="$runtime_dir/include" \

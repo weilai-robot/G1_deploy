@@ -38,6 +38,8 @@ public:
         }
         qs_[0] = q0;
         t0_ = (double)unitree::common::GetCurrentTimeMillisecond() * 1e-3;
+        spdlog::info("FixStand: applied standing PD to {} joints; target interpolation {} s",
+                     kp.size(), ts_.back());
     }
 
     void run()

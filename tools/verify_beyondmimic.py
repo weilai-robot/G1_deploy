@@ -107,6 +107,15 @@ def main():
     # Independent oracle: MuJoCo's world FK, matching training's torso-relative
     # transforms and row-major first-two-columns orientation representation.
     initialise()
+    # Deployment aligns the motion's initial root yaw and origin to the robot.
+    # A motion starting away from world XY=(0,0) must use the same aligned frame
+    # in this independent MuJoCo oracle, rather than its original world origin.
+    initial_rotation = matrix(data.qpos[3:7])
+    reference_rotation = matrix(ref_quat[0, 0])
+    yaw_delta = (np.arctan2(initial_rotation[1, 0], initial_rotation[0, 0])
+                 - np.arctan2(reference_rotation[1, 0], reference_rotation[0, 0]))
+    alignment = Rotation.from_euler("z", yaw_delta).as_matrix()
+    translation = data.qpos[:3].copy() - alignment @ ref_pos[0, 0]
     controller = Controller(args.offline_binary.resolve(), package)
     rng = np.random.default_rng(123)
     last_action = np.zeros(29)
@@ -122,8 +131,8 @@ def main():
         result = controller.step(state)
         torso_r = matrix(data.xquat[torso])
         expected = np.concatenate([
-            ref_q[sample], ref_dq[sample], torso_r.T@(ref_pos[sample, 7]-data.xpos[torso]),
-            (torso_r.T@matrix(ref_quat[sample, 7]))[:, :2].reshape(-1),
+            ref_q[sample], ref_dq[sample], torso_r.T@(alignment@ref_pos[sample, 7]+translation-data.xpos[torso]),
+            (torso_r.T@alignment@matrix(ref_quat[sample, 7]))[:, :2].reshape(-1),
             matrix(data.qpos[3:7]).T@data.qvel[:3], data.qvel[3:6],
             data.qpos[qids[ids]]-defaults, data.qvel[vids[ids]], last_action,
         ]).astype(np.float32)

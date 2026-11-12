@@ -33,6 +33,18 @@ int main(int argc, char** argv)
 {
     // Load parameters
     auto vm = param::helper(argc, argv);
+    const auto config_path = vm.count("config")
+        ? std::filesystem::absolute(vm["config"].as<std::string>())
+        : param::config_dir / "config.yaml";
+    spdlog::info("FSM configuration: {}", config_path.string());
+    const auto stand = param::config["FSM"]["FixStand"];
+    if (stand) {
+        const auto kp = stand["kp"].as<std::vector<float>>();
+        const auto kd = stand["kd"].as<std::vector<float>>();
+        for (std::size_t i = 0; i < kp.size(); ++i) {
+            spdlog::info("Configured FixStand motor[{}]: kp={} kd={}", i, kp[i], kd.at(i));
+        }
+    }
     const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
     if(beyondmimic && vm["network"].as<std::string>().empty()) {
         std::cerr << "BeyondMimic requires an explicit --network (lo for simulation).\n";

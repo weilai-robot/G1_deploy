@@ -66,6 +66,8 @@ void State_BeyondMimic::enter() {
             motor.kp()=cfg.kp[i]; motor.kd()=cfg.kd[i];
             motor.dq()=0; motor.tau()=0;
         }
+        spdlog::info("BeyondMimic: restored training PD from deploy.yaml for {} joints; starting reference frame {}",
+                     beyondmimic::J, start_frame_);
         running_=true;
         worker_=std::thread(&State_BeyondMimic::policy_loop,this);
     } catch(const std::exception& e) {
