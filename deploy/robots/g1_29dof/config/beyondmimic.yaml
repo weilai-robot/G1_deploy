@@ -75,20 +75,21 @@ FSM:
     transitions:
       Passive: LT + B.on_pressed
       BeyondMimic: LT(2s) + right.on_pressed
-    # Standing PD from config.yaml; dance entry restores training PD from deploy.yaml.
+    # Standing PD based on config.yaml, with ankle Kp/Kd set to 150/3 for trial (not validated).
+    # Dance entry restores training PD from deploy.yaml.
     kp:
     - 100.0
     - 100.0
     - 100.0
     - 150.0
-    - 40.0
-    - 40.0
+    - 150.0
+    - 150.0
     - 100.0
     - 100.0
     - 100.0
     - 150.0
-    - 40.0
-    - 40.0
+    - 150.0
+    - 150.0
     - 200.0
     - 200.0
     - 200.0
@@ -111,14 +112,14 @@ FSM:
     - 2.0
     - 2.0
     - 4.0
-    - 2.0
-    - 2.0
+    - 3.0
+    - 3.0
     - 2.0
     - 2.0
     - 2.0
     - 4.0
-    - 2.0
-    - 2.0
+    - 3.0
+    - 3.0
     - 5.0
     - 5.0
     - 5.0

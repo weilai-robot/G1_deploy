@@ -160,7 +160,7 @@ cd ~/G1_deploy/deploy/robots/g1_29dof
 
 ### 站立与舞蹈分别使用 PD
 
-`FixStand` 的目标角保持为参考第 0 帧，PD 则使用仓库原 `config/config.yaml` 的站立参数：每条腿的 Kp 为 `[100, 100, 100, 150, 40, 40]`，Kd 为 `[2, 2, 2, 4, 2, 2]`；腰部 Kp/Kd 为 `200/5`，手臂各关节为 `40/10`。这些是待真机验证的站立参数，不代表屈膝首帧已能稳定承重。
+默认 `dance_zui` 的 `FixStand` 目标角保持为参考第 0 帧，PD 基于仓库原 `config/config.yaml`，并将四个踝关节（SDK 4、5、10、11）的 Kp/Kd 从 `40/2` 提高为 `150/3` 试调。每条腿的 Kp 为 `[100, 100, 100, 150, 150, 150]`，Kd 为 `[2, 2, 2, 4, 3, 3]`，顺序为髋 pitch/roll/yaw、膝、踝 pitch/roll；腰部 Kp/Kd 为 `200/5`，手臂各关节为 `40/10`。本次增益调整尚未经仿真或真机验证，不代表屈膝首帧已能稳定承重。若出现振荡、冲击或持续前倾，应在防跌落支撑承重后回到阻尼，停止测试。
 
 进入 `BeyondMimic`、通过首帧姿态检查后，程序会将全部 29 个关节立即恢复为模型包 `deploy.yaml` 的训练 Kp/Kd，再启动策略。切换没有增益渐变，实际跟踪误差会影响切换时的力矩变化，需单独验证。启动时检查 `FSM configuration` 路径为 `beyondmimic.yaml` 和 `Configured FixStand motor[...]` 参数日志，进入站立时检查 `applied standing PD`，进入舞蹈时检查 `restored training PD` 日志。
 
