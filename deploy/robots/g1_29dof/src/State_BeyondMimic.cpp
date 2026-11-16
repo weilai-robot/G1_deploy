@@ -33,6 +33,7 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
         preparation_cfg_.pose_duration=prepare_duration;
         preparation_cfg_.gain_duration=cfg["prepare_gain_duration_s"].as<float>(0.5f);
         preparation_cfg_.settle_timeout=cfg["prepare_settle_timeout_s"].as<float>(2);
+        preparation_cfg_.settle_duration=cfg["prepare_settle_duration_s"].as<float>(0.2f);
         preparation_cfg_.max_target_speed=cfg["prepare_max_target_speed"].as<float>(0.5f);
         preparation_cfg_.max_joint_speed=cfg["prepare_max_joint_speed"].as<float>(0.5f);
         preparation_cfg_.max_error=max_start_error_;
@@ -121,8 +122,8 @@ bool State_BeyondMimic::prepare() {
     const auto first=motion_->frame(start_frame_);
     for(int i=0;i<beyondmimic::J;++i) goal[core_->config().sdk_indices[i]]=first.q[i];
     beyondmimic::Preparation<beyondmimic::J> planner(preparation_cfg_,initial.q,goal);
-    spdlog::info("BeyondMimic preparation: pose {} s, gain blend {} s, settling timeout {} s",
-                 planner.pose_duration(),preparation_cfg_.gain_duration,preparation_cfg_.settle_timeout);
+    spdlog::info("BeyondMimic preparation: pose {} s, gain blend {} s, settle confirmation {} s, settling timeout {} s",
+                 planner.pose_duration(),preparation_cfg_.gain_duration,preparation_cfg_.settle_duration,preparation_cfg_.settle_timeout);
     const auto begin=Clock::now();
     auto deadline=begin;
     const auto dt=std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(core_->config().dt));

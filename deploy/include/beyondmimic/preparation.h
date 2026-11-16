@@ -14,6 +14,7 @@ template<std::size_t N> struct PreparationConfig {
     Values standing_kp{}, standing_kd{}, policy_kp{}, policy_kd{};
     Values lower{}, upper{}, effort{};
     float pose_duration = 3, gain_duration = 0.5f, settle_timeout = 2;
+    float settle_duration = 0.2f;
     float max_target_speed = 0.5f, max_joint_speed = 0.5f, max_error = 0.25f;
     float dt = 0.02f;
 };
@@ -28,6 +29,8 @@ public:
         if (!positive(cfg_.pose_duration) || cfg_.pose_duration > 10 ||
             !positive(cfg_.gain_duration) || cfg_.gain_duration > 5 ||
             !positive(cfg_.settle_timeout) || cfg_.settle_timeout > 10 ||
+            !positive(cfg_.settle_duration) || cfg_.settle_duration < cfg_.dt ||
+            cfg_.settle_duration >= cfg_.settle_timeout ||
             !positive(cfg_.max_target_speed) || cfg_.max_target_speed > 2 ||
             !positive(cfg_.max_joint_speed) || !positive(cfg_.max_error) ||
             !positive(cfg_.dt)) throw std::runtime_error("Invalid preparation timing/limits");
@@ -77,7 +80,7 @@ public:
         if (elapsed >= pose_duration_ + cfg_.gain_duration &&
             error <= cfg_.max_error && speed <= cfg_.max_joint_speed) {
             if (settled_since_ < 0) settled_since_ = elapsed;
-            cmd.ready = elapsed-settled_since_ >= 0.2f;
+            cmd.ready = elapsed-settled_since_ >= cfg_.settle_duration;
         } else settled_since_ = -1;
         if (!cmd.ready && elapsed > pose_duration_ + cfg_.gain_duration + cfg_.settle_timeout)
             throw std::runtime_error("Preparation did not settle at motion first frame");

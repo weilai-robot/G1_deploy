@@ -57,11 +57,13 @@ cd ~/G1_deploy/deploy/robots/g1_29dof
 
 新动作第 0 帧为屈膝、不对称的动作姿态，关节角与原 FixStand 最大相差约 0.905 rad，参考关节速度最大约 3.46 rad/s，不能沿用旧站姿直接切入。按 2026-11-16 用户确认的流程，FixStand 保留原 `dance_zui` 的站姿和全部站立 PD，四个踝关节（SDK 4、5、10、11）为 Kp=150、Kd=3。首帧衔接在按舞蹈启动键后进行。
 
-衔接采用 3 秒起的平滑关节插值，目标速度限制 0.5 rad/s，距离较大时自动延长。之后保持首帧目标，用 0.5 秒渐变到训练 PD。全过程按关节限位、目标变化速度和 PD 估算力矩共同约束输出，并保留 LowState 超时、目标更新超时、周期超时及骨盆倾斜退出检查。
+衔接已按用户要求缩短为 0.6 秒起的平滑关节插值，目标速度限制提高至 2 rad/s，距离较大时自动延长。按原站姿到首帧约 0.905 rad 的最大差值，姿态段实际最短约 0.68 秒；之后用 0.1 秒渐变到训练 PD，尽快交给策略控制。全过程仍按关节限位、目标变化速度和 PD 估算力矩共同约束输出，并保留 LowState 超时、目标更新超时、周期超时及骨盆倾斜退出检查。
 
-训练 PD 渐变完成后，实测所有关节与首帧的最大角度偏差须不超过 0.25 rad，最大速度须不超过 0.5 rad/s，并连续稳定至少 0.2 秒，才重置策略历史/里程计并从第 0 帧推理。2 秒内未稳定则转阻尼，日志显示 `Preparation did not settle at motion first frame`。衔接时间不计入 48 秒动作时长。
+训练 PD 渐变完成后，实测所有关节与首帧的最大角度偏差仍须不超过 0.25 rad，最大速度仍须不超过 0.5 rad/s；连续确认时间缩短为 0.04 秒，再重置策略历史/里程计并从第 0 帧推理。姿态和增益过渡结束后 0.5 秒内未到位则转阻尼，日志显示 `Preparation did not settle at motion first frame`。衔接时间不计入 48 秒动作时长。
 
-参数为 `prepare_duration_s`、`prepare_gain_duration_s`、`prepare_settle_timeout_s`、`prepare_max_target_speed`、`prepare_max_joint_speed`。默认 `dance_zui` 未启用此阶段，保留原流程。该衔接是关节目标过渡，不是全身平衡控制；不能证明中间姿态或首帧可在真机静态站稳。原离线闭环验证从参考首帧直接初始化，没有覆盖新的衔接。
+以实际 29 关节参数进行理想反馈规划检查，约 0.82 秒允许进入策略；这不是动力学仿真或真机结果。实际衔接时间取决于起始姿态和反馈，不能保证更快一定更稳。新增快速衔接尚未经真机验证，也没有解决此前舞蹈闭环失稳问题。
+
+参数为 `prepare_duration_s`、`prepare_gain_duration_s`、`prepare_settle_duration_s`、`prepare_settle_timeout_s`、`prepare_max_target_speed`、`prepare_max_joint_speed`。默认 `dance_zui` 未启用此阶段，保留原流程。该衔接是关节目标过渡，不是全身平衡控制；不能证明中间姿态或首帧可在真机静态站稳。原离线闭环验证从参考首帧直接初始化，没有覆盖新的衔接。
 
 无硬件检查可运行 `python3 tools/test_beyondmimic_preparation.py`，覆盖姿态/增益顺序、速度和估算力矩约束、实测稳定门槛、超时及错误输入。规划器检查不等于完整控制器或真机稳定性验证；需在机载 Linux 重新编译。
 

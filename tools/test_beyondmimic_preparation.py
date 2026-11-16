@@ -45,6 +45,39 @@ int main() {
     }
     assert(ready); // posture + gain blend + measured settling completed
 
+    // Fast handoff retains the measured pose/velocity gate but does not hold
+    // the motion's first frame for the former 0.2-second confirmation period.
+    c=config(); c.pose_duration=0.6f; c.gain_duration=0.1f;
+    c.max_target_speed=2; c.settle_duration=0.04f; c.settle_timeout=0.5f;
+    Planner fast(c,{0,0},{0.9f,-0.6f}); actual={0,0}; velocity={0,0}; ready=false;
+    assert(fast.pose_duration()>=0.674f); // cannot outrun the target speed limit
+    for(int n=0;n<55 && !ready;++n) {
+        const float t=n*c.dt;
+        auto cmd=fast.update(t,actual,velocity);
+        for(int i=0;i<2;++i) {
+            assert(std::abs(cmd.q[i]-actual[i])<=c.max_target_speed*c.dt+1e-6f);
+            assert(std::abs(cmd.kp[i]*(cmd.q[i]-actual[i])-cmd.kd[i]*velocity[i])<=c.effort[i]+1e-4f);
+            velocity[i]=(cmd.q[i]-actual[i])/c.dt;
+        }
+        if(t<fast.pose_duration()+c.gain_duration+c.settle_duration-1e-5f) assert(!cmd.ready);
+        actual=cmd.q; ready=cmd.ready;
+    }
+    assert(ready);
+    Planner fast_stuck(c,{0,0},{0.9f,0});
+    rejects([&] { for(int n=0;n<100;++n) assert(!fast_stuck.update(n*c.dt,{0,0},{0,0}).ready); });
+    Planner fast_settling(c,{0,0},{0,0});
+    assert(!fast_settling.update(0.71f,{0,0},{0,0}).ready);
+    assert(!fast_settling.update(0.73f,{0,0},{1,0}).ready);
+    assert(!fast_settling.update(0.75f,{0,0},{0,0}).ready);
+    assert(!fast_settling.update(0.77f,{0,0},{0,0}).ready);
+    assert(fast_settling.update(0.81f,{0,0},{0,0}).ready);
+    c.settle_duration=0;
+    rejects([&] { Planner bad(c,{0,0},{0.2f,0}); });
+    c.settle_duration=0.01f;
+    rejects([&] { Planner bad(c,{0,0},{0.2f,0}); });
+    c.settle_duration=c.settle_timeout;
+    rejects([&] { Planner bad(c,{0,0},{0.2f,0}); });
+
     // A reference close to a hard joint limit is reachable within the pose
     // tolerance, while commanded targets retain the deployment's 0.01 margin.
     c=config(); Planner margin(c,{0,0},{1.999f,0}); actual={0,0}; ready=false;
