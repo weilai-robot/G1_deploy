@@ -13,12 +13,45 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     max_tilt_=cfg["max_tilt"].as<float>(0.85f);
     max_target_speed_=cfg["max_target_speed"].as<float>(8.0f);
     max_anchor_error_=cfg["max_anchor_error"].as<float>(0.35f);
+    const float prepare_duration=cfg["prepare_duration_s"].as<float>(0);
+    if(!std::isfinite(prepare_duration) || prepare_duration<0)
+        throw std::runtime_error("Invalid preparation duration");
+    preparation_enabled_=prepare_duration>0;
     if(start_frame_>=motion_->frames() || !std::isfinite(duration) || duration<=0 || duration>300 ||
        !(max_start_error_>0 && max_start_error_<0.8f) || !(max_tilt_>0 && max_tilt_<1.5f) ||
        !(max_target_speed_>0 && max_target_speed_<=20) || !(max_anchor_error_>0 && max_anchor_error_<=1))
         throw std::runtime_error("Invalid BeyondMimic segment/limits");
     end_frame_=std::min(motion_->frames(),start_frame_+static_cast<std::size_t>(duration/core_->config().dt));
     if(end_frame_<=start_frame_) throw std::runtime_error("Empty BeyondMimic segment");
+    if(preparation_enabled_) {
+        const auto stand=param::config["FSM"]["FixStand"];
+        const auto poses=stand["qs"];
+        if(!poses.IsSequence() || poses.size()==0) throw std::runtime_error("Missing FixStand preparation posture");
+        standing_q_=beyondmimic::read_array<beyondmimic::J>(poses[poses.size()-1]);
+        preparation_cfg_.standing_kp=beyondmimic::read_array<beyondmimic::J>(stand["kp"]);
+        preparation_cfg_.standing_kd=beyondmimic::read_array<beyondmimic::J>(stand["kd"]);
+        preparation_cfg_.pose_duration=prepare_duration;
+        preparation_cfg_.gain_duration=cfg["prepare_gain_duration_s"].as<float>(0.5f);
+        preparation_cfg_.settle_timeout=cfg["prepare_settle_timeout_s"].as<float>(2);
+        preparation_cfg_.max_target_speed=cfg["prepare_max_target_speed"].as<float>(0.5f);
+        preparation_cfg_.max_joint_speed=cfg["prepare_max_joint_speed"].as<float>(0.5f);
+        preparation_cfg_.max_error=max_start_error_;
+        preparation_cfg_.dt=core_->config().dt;
+        const auto& control=core_->config();
+        beyondmimic::Joints goal{};
+        const auto first=motion_->frame(start_frame_);
+        for(int i=0;i<beyondmimic::J;++i) {
+            const int sdk=control.sdk_indices[i];
+            goal[sdk]=first.q[i];
+            preparation_cfg_.policy_kp[sdk]=control.kp[i];
+            preparation_cfg_.policy_kd[sdk]=control.kd[i];
+            preparation_cfg_.lower[sdk]=control.lower[i];
+            preparation_cfg_.upper[sdk]=control.upper[i];
+            preparation_cfg_.effort[sdk]=control.effort[i];
+        }
+        // Validate parameters and reference posture before connecting a worker.
+        beyondmimic::Preparation<beyondmimic::J> check(preparation_cfg_,standing_q_,goal);
+    }
     registered_checks.insert(registered_checks.begin(),{[this]{return stopped_.load();},FSMStringMap.right.at("Passive")});
     spdlog::info("BeyondMimic loaded: 160 obs / 29 actions, {} frames, leg odometry",motion_->frames());
     spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {} s; segment end enters damping",
@@ -53,28 +86,76 @@ void State_BeyondMimic::enter() {
         float error=0;
         for(int i=0;i<beyondmimic::J;++i) {
             const int sdk=cfg.sdk_indices[i];
-            error=std::max(error,std::abs(current.q[sdk]-ref.q[i]));
+            const float expected=preparation_enabled_ ? standing_q_[sdk] : ref.q[i];
+            error=std::max(error,std::abs(current.q[sdk]-expected));
         }
-        if(error>max_start_error_) throw std::runtime_error("Initial posture differs from reference by "+std::to_string(error)+" rad; return to FixStand");
-        core_->reset(current,ref);
+        if(error>max_start_error_) throw std::runtime_error("Initial posture differs from required start by "+std::to_string(error)+" rad; return to FixStand");
         {
             std::lock_guard<std::mutex> lock(target_mutex_);
             targets_=current.q;
+            for(int i=0;i<beyondmimic::J;++i) {
+                const int sdk=cfg.sdk_indices[i];
+                target_kp_[sdk]=preparation_enabled_ ? preparation_cfg_.standing_kp[sdk] : cfg.kp[i];
+                target_kd_[sdk]=preparation_enabled_ ? preparation_cfg_.standing_kd[sdk] : cfg.kd[i];
+            }
             last_result_=std::chrono::steady_clock::now();
         }
         for(int i=0;i<beyondmimic::J;++i) {
             auto& motor=lowcmd->msg_.motor_cmd()[cfg.sdk_indices[i]];
             motor.q()=current.q[cfg.sdk_indices[i]];
-            motor.kp()=cfg.kp[i]; motor.kd()=cfg.kd[i];
+            motor.kp()=target_kp_[cfg.sdk_indices[i]]; motor.kd()=target_kd_[cfg.sdk_indices[i]];
             motor.dq()=0; motor.tau()=0;
         }
-        spdlog::info("BeyondMimic: restored training PD from deploy.yaml for {} joints; starting reference frame {}",
-                     beyondmimic::J, start_frame_);
+        if(preparation_enabled_) spdlog::info("BeyondMimic: starting preparation from FixStand; policy clock has not started");
         running_=true;
         worker_=std::thread(&State_BeyondMimic::policy_loop,this);
     } catch(const std::exception& e) {
         stop(e.what()); damping();
     }
+}
+
+bool State_BeyondMimic::prepare() {
+    using Clock=std::chrono::steady_clock;
+    const auto initial=snapshot();
+    beyondmimic::Joints goal{};
+    const auto first=motion_->frame(start_frame_);
+    for(int i=0;i<beyondmimic::J;++i) goal[core_->config().sdk_indices[i]]=first.q[i];
+    beyondmimic::Preparation<beyondmimic::J> planner(preparation_cfg_,initial.q,goal);
+    spdlog::info("BeyondMimic preparation: pose {} s, gain blend {} s, settling timeout {} s",
+                 planner.pose_duration(),preparation_cfg_.gain_duration,preparation_cfg_.settle_timeout);
+    const auto begin=Clock::now();
+    auto deadline=begin;
+    const auto dt=std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(core_->config().dt));
+    float next_log=0;
+    while(running_) {
+        if(lowstate->isTimeout()) throw std::runtime_error("LowState timeout during preparation");
+        const auto current=snapshot();
+        const float tilt=std::acos(std::clamp((current.orientation*beyondmimic::Vec::UnitZ()).z(),-1.0f,1.0f));
+        if(tilt>max_tilt_) throw std::runtime_error("Pelvis tilt limit exceeded during preparation");
+        const float elapsed=std::chrono::duration<float>(Clock::now()-begin).count();
+        const auto cmd=planner.update(elapsed,current.q,current.dq);
+        if(!running_) return false;
+        {
+            std::lock_guard<std::mutex> lock(target_mutex_);
+            targets_=cmd.q; target_kp_=cmd.kp; target_kd_=cmd.kd;
+            last_result_=Clock::now();
+        }
+        if(elapsed>=next_log) {
+            float error=0, speed=0;
+            for(int i=0;i<beyondmimic::J;++i) {
+                error=std::max(error,std::abs(current.q[i]-goal[i]));
+                speed=std::max(speed,std::abs(current.dq[i]));
+            }
+            spdlog::info("BeyondMimic preparing: elapsed={:.2f} s max_error={:.3f} rad max_speed={:.3f} rad/s tilt={:.3f} rad",
+                         elapsed,error,speed,tilt);
+            next_log=elapsed+1;
+        }
+        if(cmd.ready) return true;
+        deadline+=dt;
+        if(Clock::now()>deadline+dt) throw std::runtime_error("Preparation missed its 20 ms deadline");
+        std::this_thread::sleep_until(deadline);
+    }
+    return false;
 }
 
 void State_BeyondMimic::stop(const std::string& reason) {
@@ -85,9 +166,19 @@ void State_BeyondMimic::stop(const std::string& reason) {
 void State_BeyondMimic::policy_loop() {
     try {
         using Clock=std::chrono::steady_clock;
+        if(preparation_enabled_ && !prepare()) return;
+        if(!running_) return;
+        const auto initial=snapshot();
+        const auto first=motion_->frame(start_frame_);
+        float error=0;
+        for(int i=0;i<beyondmimic::J;++i)
+            error=std::max(error,std::abs(initial.q[core_->config().sdk_indices[i]]-first.q[i]));
+        if(error>max_start_error_) throw std::runtime_error("Motion first-frame posture check failed after preparation");
+        core_->reset(initial,first);
+        spdlog::info("BeyondMimic: restored training PD from deploy.yaml for {} joints; starting reference frame {}",
+                     beyondmimic::J, start_frame_);
         const auto dt=std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(core_->config().dt));
         auto deadline=Clock::now();
-        const auto first=motion_->frame(start_frame_);
         const float reference_floor=std::min(first.positions[3].z(),first.positions[6].z());
         for(std::size_t frame=start_frame_;running_ && frame<end_frame_;++frame) {
             if(lowstate->isTimeout()) throw std::runtime_error("LowState timeout");
@@ -134,7 +225,11 @@ void State_BeyondMimic::run() {
     if(std::chrono::steady_clock::now()-last_result_>std::chrono::milliseconds(100)) {
         stop("Policy output timeout"); damping(); return;
     }
-    for(int i=0;i<beyondmimic::J;++i) lowcmd->msg_.motor_cmd()[i].q()=targets_[i];
+    for(int i=0;i<beyondmimic::J;++i) {
+        auto& motor=lowcmd->msg_.motor_cmd()[i];
+        motor.q()=targets_[i]; motor.kp()=target_kp_[i]; motor.kd()=target_kd_[i];
+        motor.dq()=0; motor.tau()=0;
+    }
 }
 
 void State_BeyondMimic::exit() {

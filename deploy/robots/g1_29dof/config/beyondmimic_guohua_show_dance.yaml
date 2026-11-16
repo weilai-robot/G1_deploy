@@ -1,5 +1,5 @@
 # guohua_show_dance: same controls and 160-observation interface as dance_zui.
-# FixStand targets this motion's frame 0, NOT the old standing pose.
+# FixStand retains the original standing pose; prepare after the dance button.
 # Standing/transition/real-robot validation is pending; keep fall-arrest support.
 FSM:
   _:
@@ -143,40 +143,46 @@ FSM:
     - 3
     qs:
     - []
-    - - -0.17157576978206635
-      - 0.11840107291936874
-      - 0.37046492099761963
-      - 1.0697847604751587
-      - -0.8419491648674011
-      - 0.12834575772285461
-      - -0.6423205733299255
-      - -0.5794816613197327
-      - -0.0233268104493618
-      - 1.1500887870788574
-      - -0.4891000986099243
-      - 0.26144230365753174
-      - -0.18109607696533203
-      - 0.21152545511722565
-      - 0.36889612674713135
-      - 0.22402575612068176
-      - 0.6868465542793274
-      - -0.24014760553836823
-      - 0.7030026316642761
-      - 0.18866631388664246
-      - -0.16749796271324158
-      - 0.022150930017232895
-      - -0.5957949161529541
-      - -0.31152695417404175
-      - 0.4902213513851166
-      - -0.3048690855503082
-      - 0.5048484206199646
-      - -0.17194776237010956
-      - -0.1526535302400589
+    - - -0.312
+      - 0.0
+      - 0.0
+      - 0.669
+      - -0.363
+      - 0.0
+      - -0.312
+      - 0.0
+      - 0.0
+      - 0.669
+      - -0.363
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.2
+      - 0.2
+      - 0.0
+      - 0.6
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.2
+      - -0.2
+      - 0.0
+      - 0.6
+      - 0.0
+      - 0.0
+      - 0.0
+
   BeyondMimic:
     transitions:
       Passive: LT + B.on_pressed
     policy_dir: config/policy/beyondmimic/guohua_show_dance
     start_frame: 0
+    prepare_duration_s: 3.0
+    prepare_gain_duration_s: 0.5
+    prepare_settle_timeout_s: 2.0
+    prepare_max_target_speed: 0.5
+    prepare_max_joint_speed: 0.5
     duration_s: 48.0 # One complete pass, 2400 frames at 50 Hz; guards may stop early.
     max_start_error: 0.25
     max_tilt: 0.85
