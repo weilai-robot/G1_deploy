@@ -14,6 +14,7 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     max_tilt_=cfg["max_tilt"].as<float>(0.85f);
     max_target_speed_=cfg["max_target_speed"].as<float>(8.0f);
     max_anchor_error_=cfg["max_anchor_error"].as<float>(0.35f);
+    enforce_anchor_error_=cfg["enforce_anchor_error"].as<bool>(true);
     const float prepare_duration=cfg["prepare_duration_s"].as<float>(0);
     if(!std::isfinite(prepare_duration) || prepare_duration<0)
         throw std::runtime_error("Invalid preparation duration");
@@ -75,6 +76,9 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     } else {
         spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {} s; segment end enters damping",
                      start_frame_, end_frame_, (end_frame_-start_frame_)*core_->config().dt);
+        if(!enforce_anchor_error_)
+            spdlog::warn("Torso/reference position error stop DISABLED; {} m threshold is log-only; other protections remain active",
+                         max_anchor_error_);
     }
 }
 
@@ -227,8 +231,9 @@ void State_BeyondMimic::policy_loop() {
             if(std::min(ref.positions[3].z(),ref.positions[6].z())>reference_floor+0.10f)
                 throw std::runtime_error("Reference flight/jump is unsupported by contact leg odometry");
             auto obs=core_->observe(current,ref);
-            if(beyondmimic::Vec(obs[58],obs[59],obs[60]).norm()>max_anchor_error_)
-                throw std::runtime_error("Estimated torso/reference position error limit exceeded");
+            const float anchor_error=beyondmimic::Vec(obs[58],obs[59],obs[60]).norm();
+            const bool position_limit_exceeded=beyondmimic::check_anchor_position_error(
+                anchor_error,max_anchor_error_,enforce_anchor_error_);
             auto action=runner_->act(obs);
             auto target=core_->targets(action,current,max_target_speed_);
             if(!running_) break;
@@ -239,8 +244,11 @@ void State_BeyondMimic::policy_loop() {
             }
             if((frame-start_frame_)%50==0) {
                 const auto& p=core_->position(); const auto& v=core_->velocity_b();
-                spdlog::info("BeyondMimic frame={} p=[{:.3f},{:.3f},{:.3f}] v=[{:.3f},{:.3f},{:.3f}] limited={}",
-                             frame,p.x(),p.y(),p.z(),v.x(),v.y(),v.z(),core_->clipped());
+                spdlog::info("BeyondMimic frame={} p=[{:.3f},{:.3f},{:.3f}] v=[{:.3f},{:.3f},{:.3f}] anchor_error={:.3f} m limited={}",
+                             frame,p.x(),p.y(),p.z(),v.x(),v.y(),v.z(),anchor_error,core_->clipped());
+                if(position_limit_exceeded)
+                    spdlog::warn("Torso/reference position error {:.3f} m exceeds {:.3f} m; distance stop disabled, continuing",
+                                 anchor_error,max_anchor_error_);
             }
             deadline+=dt;
             if(Clock::now()>deadline+dt) throw std::runtime_error("Policy missed its 20 ms deadline");

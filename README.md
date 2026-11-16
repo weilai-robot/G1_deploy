@@ -6,6 +6,8 @@ G1 29DOF 控制器未指定 `--config` 时，默认加载 `config/beyondmimic.ya
 
 **默认 `dance_zui` 按调试要求运行 30 秒，结束进入阻尼，需要吊装承重。原 10 秒闭环仿真通过，但此前长段仿真约 15 秒失稳；当前 30 秒配置和整段动作均未通过部署验证。**
 
+`dance_zui` 的 `enforce_anchor_error: false` 按调试要求关闭躯干／参考位置误差超过 0.35 m 的中断，保留误差日志；guohua 仍默认启用该检查。非有限数据、倾斜、通信/推理超时等其他保护保留。关闭该项不会修复位置漂移或失稳，运行中需保持防跌落支撑。
+
 另已接入独立的 `guohua_show_dance` 模型包，输入输出和遥控按键与现有舞蹈一致，使用 `config/beyondmimic_guohua_show_dance.yaml` 选择。FixStand 保留原站姿和踝关节 `150/3`；按舞蹈键后先过渡到新动作首帧、渐变至训练 PD，通过实测姿态/速度检查后再从首帧运行完整一次 48 秒，结束仍转阻尼。该舞蹈此前的部署闭环仿真未通过；新衔接及完整配置不代表已验证可稳定运行。模型来源、真机调试命令和结果见 [新舞蹈说明](docs/guohua_show_dance.md)。以下步骤仍针对默认 `dance_zui`。
 
 需要单独检查首帧支撑时，使用 `config/beyondmimic_guohua_first_frame.yaml`：原 FixStand 后过渡到首帧并保持高 PD，腿部 Kp=150，不启动策略。操作和诊断日志见 [首帧保持测试](docs/guohua_first_frame_test.md)。

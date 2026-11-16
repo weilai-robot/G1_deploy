@@ -3,6 +3,7 @@
 #include "FSM/FSMState.h"
 #include "beyondmimic/package.h"
 #include "beyondmimic/preparation.h"
+#include "beyondmimic/position_error_guard.h"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -34,6 +35,7 @@ private:
     std::size_t start_frame_=0,end_frame_=0;
     float max_start_error_=0.25f,max_tilt_=0.85f,max_target_speed_=8.0f;
     float max_anchor_error_=0.35f;
+    bool enforce_anchor_error_=true;
     bool preparation_enabled_=false;
     bool first_frame_test_=false;
 };

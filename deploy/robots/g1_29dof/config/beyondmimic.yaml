@@ -180,4 +180,6 @@ FSM:
     max_start_error: 0.25
     max_tilt: 0.85
     max_target_speed: 8.0
+    # Log torso/reference drift without stopping this dance; other guards remain active.
+    enforce_anchor_error: false
     max_anchor_error: 0.35
