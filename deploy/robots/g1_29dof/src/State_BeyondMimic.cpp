@@ -2,10 +2,11 @@
 
 State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(state,name) {
     auto cfg=param::config["FSM"][name];
+    first_frame_test_=cfg["first_frame_test"].as<bool>(false);
     auto path=param::proj_dir/cfg["policy_dir"].as<std::string>();
     core_=std::make_unique<beyondmimic::Core>(beyondmimic::load_config(path/"deploy.yaml"));
     motion_=std::make_unique<beyondmimic::Motion>((path/"reference.bin").string());
-    runner_=std::make_unique<beyondmimic::Runner>(path/"policy.onnx");
+    if(!first_frame_test_) runner_=std::make_unique<beyondmimic::Runner>(path/"policy.onnx");
     lowstate->set_timeout_ms(100);
     start_frame_=cfg["start_frame"].as<std::size_t>(0);
     const float duration=cfg["duration_s"].as<float>(10.0f);
@@ -17,6 +18,8 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     if(!std::isfinite(prepare_duration) || prepare_duration<0)
         throw std::runtime_error("Invalid preparation duration");
     preparation_enabled_=prepare_duration>0;
+    if(first_frame_test_ && !preparation_enabled_)
+        throw std::runtime_error("First-frame test requires preparation");
     if(start_frame_>=motion_->frames() || !std::isfinite(duration) || duration<=0 || duration>300 ||
        !(max_start_error_>0 && max_start_error_<0.8f) || !(max_tilt_>0 && max_tilt_<1.5f) ||
        !(max_target_speed_>0 && max_target_speed_<=20) || !(max_anchor_error_>0 && max_anchor_error_<=1))
@@ -50,13 +53,29 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
             preparation_cfg_.upper[sdk]=control.upper[i];
             preparation_cfg_.effort[sdk]=control.effort[i];
         }
+        if(first_frame_test_) {
+            // Diagnostic gains are explicitly in SDK order. Never modify the
+            // model package or silently use these gains for policy inference.
+            preparation_cfg_.policy_kp=beyondmimic::read_array<beyondmimic::J>(cfg["first_frame_kp"]);
+            preparation_cfg_.policy_kd=beyondmimic::read_array<beyondmimic::J>(cfg["first_frame_kd"]);
+        }
         // Validate parameters and reference posture before connecting a worker.
         beyondmimic::Preparation<beyondmimic::J> check(preparation_cfg_,standing_q_,goal);
     }
     registered_checks.insert(registered_checks.begin(),{[this]{return stopped_.load();},FSMStringMap.right.at("Passive")});
-    spdlog::info("BeyondMimic loaded: 160 obs / 29 actions, {} frames, leg odometry",motion_->frames());
-    spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {} s; segment end enters damping",
-                 start_frame_, end_frame_, (end_frame_-start_frame_)*core_->config().dt);
+    if(first_frame_test_) spdlog::info("First-frame test reference loaded: {} frames; no policy runner created",motion_->frames());
+    else spdlog::info("BeyondMimic loaded: 160 obs / 29 actions, {} frames, leg odometry",motion_->frames());
+    if(first_frame_test_) {
+        spdlog::warn("FIRST FRAME TEST ONLY: policy inference DISABLED; holding reference frame {} until L2+B or protection exit",
+                     start_frame_);
+        spdlog::info("First-frame PD: hip_pitch L/R={}/{} knee L/R={}/{} ankle_pitch L/R={}/{}",
+                     preparation_cfg_.policy_kp[0],preparation_cfg_.policy_kp[6],
+                     preparation_cfg_.policy_kp[3],preparation_cfg_.policy_kp[9],
+                     preparation_cfg_.policy_kp[4],preparation_cfg_.policy_kp[10]);
+    } else {
+        spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {} s; segment end enters damping",
+                     start_frame_, end_frame_, (end_frame_-start_frame_)*core_->config().dt);
+    }
 }
 
 beyondmimic::Snapshot State_BeyondMimic::snapshot() {
@@ -128,6 +147,7 @@ bool State_BeyondMimic::prepare() {
     auto deadline=begin;
     const auto dt=std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(core_->config().dt));
     float next_log=0;
+    bool holding_first_frame=false;
     while(running_) {
         if(lowstate->isTimeout()) throw std::runtime_error("LowState timeout during preparation");
         const auto current=snapshot();
@@ -147,11 +167,26 @@ bool State_BeyondMimic::prepare() {
                 error=std::max(error,std::abs(current.q[i]-goal[i]));
                 speed=std::max(speed,std::abs(current.dq[i]));
             }
-            spdlog::info("BeyondMimic preparing: elapsed={:.2f} s max_error={:.3f} rad max_speed={:.3f} rad/s tilt={:.3f} rad",
+            spdlog::info("BeyondMimic {}: elapsed={:.2f} s max_error={:.3f} rad max_speed={:.3f} rad/s tilt={:.3f} rad",
+                         holding_first_frame ? "FIRST FRAME HOLD (policy disabled)" : "preparing",
                          elapsed,error,speed,tilt);
+            if(first_frame_test_) {
+                auto torque=[&](int i) { return cmd.kp[i]*(cmd.q[i]-current.q[i])-cmd.kd[i]*current.dq[i]; };
+                spdlog::info("First-frame legs q/target/tau_PD: knee L={:.3f}/{:.3f}/{:.2f} R={:.3f}/{:.3f}/{:.2f}; ankle_pitch L={:.3f}/{:.3f}/{:.2f} R={:.3f}/{:.3f}/{:.2f}",
+                             current.q[3],cmd.q[3],torque(3),current.q[9],cmd.q[9],torque(9),
+                             current.q[4],cmd.q[4],torque(4),current.q[10],cmd.q[10],torque(10));
+            }
             next_log=elapsed+1;
         }
-        if(cmd.ready) return true;
+        if(cmd.ready) {
+            if(!first_frame_test_) return true;
+            if(!holding_first_frame) {
+                holding_first_frame=true;
+                spdlog::warn("FIRST FRAME HOLD reached: high diagnostic PD active, policy inference DISABLED; L2+B exits to damping");
+            }
+        }
+        if(holding_first_frame && !cmd.ready)
+            throw std::runtime_error("First-frame hold lost posture/velocity readiness");
         deadline+=dt;
         if(Clock::now()>deadline+dt) throw std::runtime_error("Preparation missed its 20 ms deadline");
         std::this_thread::sleep_until(deadline);
@@ -169,6 +204,8 @@ void State_BeyondMimic::policy_loop() {
         using Clock=std::chrono::steady_clock;
         if(preparation_enabled_ && !prepare()) return;
         if(!running_) return;
+        // Defense in depth: a diagnostic configuration must never reach act().
+        if(first_frame_test_) return;
         const auto initial=snapshot();
         const auto first=motion_->frame(start_frame_);
         float error=0;

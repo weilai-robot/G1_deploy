@@ -1,0 +1,249 @@
+# Diagnostic only: original FixStand -> guohua frame 0 with high PD.
+# No policy inference, no 48-second playback. L2+B exits to damping.
+---
+FSM:
+  _:
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    BeyondMimic:
+      id: 201
+      type: BeyondMimicFirstFrameTest
+  Passive:
+    transitions:
+      FixStand: LT + up.on_pressed
+    mode:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    kd:
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+  FixStand:
+    transitions:
+      Passive: LT + B.on_pressed
+      BeyondMimic: LT(2s) + right.on_pressed
+    kp:
+    - 100.0
+    - 100.0
+    - 100.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 100.0
+    - 100.0
+    - 100.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 200.0
+    - 200.0
+    - 200.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    kd:
+    - 2.0
+    - 2.0
+    - 2.0
+    - 4.0
+    - 3.0
+    - 3.0
+    - 2.0
+    - 2.0
+    - 2.0
+    - 4.0
+    - 3.0
+    - 3.0
+    - 5.0
+    - 5.0
+    - 5.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    ts:
+    - 0
+    - 3
+    qs:
+    - []
+    - - -0.312
+      - 0.0
+      - 0.0
+      - 0.669
+      - -0.363
+      - 0.0
+      - -0.312
+      - 0.0
+      - 0.0
+      - 0.669
+      - -0.363
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.2
+      - 0.2
+      - 0.0
+      - 0.6
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.2
+      - -0.2
+      - 0.0
+      - 0.6
+      - 0.0
+      - 0.0
+      - 0.0
+  BeyondMimic:
+    transitions:
+      Passive: LT + B.on_pressed
+    policy_dir: config/policy/beyondmimic/guohua_show_dance
+    start_frame: 0
+    prepare_duration_s: 0.6
+    prepare_gain_duration_s: 0.1
+    prepare_settle_duration_s: 0.04
+    prepare_settle_timeout_s: 0.5
+    prepare_max_target_speed: 2.0
+    prepare_max_joint_speed: 0.5
+    max_start_error: 0.25
+    max_tilt: 0.85
+    max_target_speed: 8.0
+    max_anchor_error: 0.35
+    first_frame_test: true
+    first_frame_kp:
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 200.0
+    - 200.0
+    - 200.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    first_frame_kd:
+    - 2.0
+    - 2.0
+    - 2.0
+    - 4.0
+    - 3.0
+    - 3.0
+    - 2.0
+    - 2.0
+    - 2.0
+    - 4.0
+    - 3.0
+    - 3.0
+    - 5.0
+    - 5.0
+    - 5.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0

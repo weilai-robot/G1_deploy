@@ -49,6 +49,7 @@ int main(int argc, char** argv)
         }
     }
     const bool beyondmimic = bool(param::config["FSM"]["_"]["BeyondMimic"]);
+    const bool first_frame_test = beyondmimic && param::config["FSM"]["BeyondMimic"]["first_frame_test"].as<bool>(false);
     if(beyondmimic && vm["network"].as<std::string>().empty()) {
         std::cerr << "BeyondMimic requires an explicit --network (lo for simulation).\n";
         return 1;
@@ -74,7 +75,11 @@ int main(int argc, char** argv)
 
     std::cout << "Press [L2 + Up] to enter FixStand mode.\n";
     if(beyondmimic) {
-        std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
+        if(first_frame_test) {
+            std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] for FIRST FRAME HOLD (NO POLICY).\n";
+        } else {
+            std::cout << "Wait 3 seconds, then hold [L2] for 2 seconds and press [Right] to start BeyondMimic.\n";
+        }
         std::cout << "[L2 + B] or Ctrl+C -> damping; keep fall-arrest support attached.\n";
     } else {
         std::cout << "And then press [R1 + X] to start controlling the robot.\n";

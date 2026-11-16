@@ -71,6 +71,23 @@ int main() {
     assert(!fast_settling.update(0.75f,{0,0},{0,0}).ready);
     assert(!fast_settling.update(0.77f,{0,0},{0,0}).ready);
     assert(fast_settling.update(0.81f,{0,0},{0,0}).ready);
+
+    // Diagnostic mode uses high destination PD and keeps updating the same
+    // planner after readiness; it must not blend down to the trained gains.
+    c.policy_kp={150,150}; c.policy_kd=c.standing_kd;
+    Planner hold(c,{0,0},{0.9f,-0.6f}); actual={0,0}; velocity={0,0}; ready=false;
+    for(int n=0;n<500;++n) {
+        auto cmd=hold.update(n*c.dt,actual,velocity);
+        for(int i=0;i<2;++i) {
+            if(n*c.dt>=hold.pose_duration()+c.gain_duration)
+                assert(cmd.kp[i]==150 && cmd.kd[i]==c.standing_kd[i]);
+            velocity[i]=(cmd.q[i]-actual[i])/c.dt;
+        }
+        if(ready) assert(cmd.ready);
+        ready=cmd.ready; actual=cmd.q;
+    }
+    assert(ready);
+    rejects([&] { hold.update(10,{actual[0]+0.5f,actual[1]},{0,0}); });
     c.settle_duration=0;
     rejects([&] { Planner bad(c,{0,0},{0.2f,0}); });
     c.settle_duration=0.01f;
