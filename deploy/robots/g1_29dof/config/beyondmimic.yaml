@@ -176,7 +176,7 @@ FSM:
       Passive: LT + B.on_pressed
     policy_dir: config/policy/beyondmimic/dance_zui
     start_frame: 0
-    duration_s: 10.0
+    duration_s: 30.0
     max_start_error: 0.25
     max_tilt: 0.85
     max_target_speed: 8.0
