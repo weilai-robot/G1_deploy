@@ -6,7 +6,7 @@ G1 29DOF 控制器未指定 `--config` 时，默认加载 `config/beyondmimic.ya
 
 **当前为默认 10 秒的吊装试验版本：已完成仿真和编译检查，尚未进行真机测试，整段动作未通过部署验证。试验结束会进入阻尼，需要吊装承重。**
 
-另已接入独立的 `guohua_show_dance` 模型包，输入输出和遥控按键与现有舞蹈一致，使用 `config/beyondmimic_guohua_show_dance.yaml` 选择。该舞蹈的部署闭环仿真未通过，目前仅供离线验证，不用于真机测试；首帧也不同于原站姿。模型来源、使用方法和结果见 [新舞蹈说明](docs/guohua_show_dance.md)。以下真机步骤仍针对 `dance_zui`。
+另已接入独立的 `guohua_show_dance` 模型包，输入输出和遥控按键与现有舞蹈一致，使用 `config/beyondmimic_guohua_show_dance.yaml` 选择。按用户调试要求，该配置从首帧运行完整一次 48 秒，FixStand 踝关节为 `150/3`，结束仍转阻尼。该舞蹈此前的部署闭环仿真未通过，首帧也不同于原站姿；完整配置不代表已验证可稳定运行。模型来源、真机调试命令和结果见 [新舞蹈说明](docs/guohua_show_dance.md)。以下步骤仍针对默认 `dance_zui`。
 
 先通过现有 SSH 或远程终端登录 **G1 机载开发电脑**。以下终端命令均在 G1 上执行，项目目录以 `~/G1_deploy` 为例。
 

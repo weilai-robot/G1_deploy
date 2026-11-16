@@ -2,7 +2,7 @@
 
 已将 `g1_dance/trained_models/guohua_show_dance.pt` 与用户指定的 `whole_body_tracking/motions/gLO_30fps_isaac.npz` 转换成独立部署包。动作文件内部为 50 Hz，共 2400 帧、48 秒。原 `dance_zui` 的模型包和默认选择保留。
 
-**模型接口和 C++ 观测对照已通过；当前部署闭环未通过，不用于真机测试。** 保留了全部部署保护，没有为了通过仿真取消限幅。
+**模型接口和 C++ 观测对照已通过；此前部署闭环未通过，已知存在失稳风险。** 2026-11-16 按用户真机调试要求，将运行段从 10 秒改为完整一次 48 秒；保留了全部部署保护，没有为了播放全长取消限幅或保护中止。
 
 ## 文件与接口
 
@@ -27,11 +27,35 @@ docs/guohua_show_dance_validation.json
 | 映射及控制参数 | 训练关节顺序、SDK 映射、默认角、动作缩放、训练 PD、运动学与原包一致 |
 | 遥控操作 | L2+上进入 FixStand；稳定后 L2 持续 2 秒+右进入 BeyondMimic；L2+B 转阻尼 |
 
-两个舞蹈复用 `State_BeyondMimic`，通过启动配置的 `policy_dir` 选择模型与参考动作；不需要新增控制器状态实现。新配置从第 0 帧选取 10 秒试验段，结束转阻尼。
+两个舞蹈复用 `State_BeyondMimic`，通过启动配置的 `policy_dir` 选择模型与参考动作；不需要新增控制器状态实现。新配置从第 0 帧运行到第 2399 帧，完整一次 48 秒，结束转阻尼。不会循环播放；保护触发时仍会提前退出，不能保证真机完成全段。
+
+## 真机调试启动
+
+同步代码后在机载 Linux 编译，以包含键盘线程退出修复和运行帧范围日志：
+
+```bash
+cd ~/G1_deploy
+git pull --ff-only origin main
+python3 tools/check_beyondmimic_package.py \
+  deploy/robots/g1_29dof/config/policy/beyondmimic/guohua_show_dance
+bash tools/build_g1_deploy.sh
+```
+
+保持防跌落吊装保护，按宇树流程进入开发模式后，在对应网卡上启动控制器（`eth0` 替换为实际机器人网卡）：
+
+```bash
+cd ~/G1_deploy/deploy/robots/g1_29dof
+./build/g1_ctrl --network eth0 --domain 0 \
+  --config config/beyondmimic_guohua_show_dance.yaml --log
+```
+
+检查 `FSM configuration` 指向新配置、`loaded` 显示 `2400 frames`，`segment` 显示 `start_frame=0 end_frame=2400 (exclusive), 48 s`。不指定 `--config` 仍为旧 `dance_zui`。
+
+先按 L2+上，等待至少 3 秒并确认准备姿态稳定；再持续按住 L2 至少 2 秒，按右启动舞蹈。L2+B 转阻尼。舞蹈正常结束、保护中止或 Ctrl+C 退出都不会自动恢复站立，吊装需能承重。失稳、保护触发或线程异常时停止测试，不用连续重启或提高保护阈值强行继续。
 
 ## 首帧与站立参数
 
-新动作第 0 帧为屈膝、不对称的动作姿态，关节角与原 FixStand 最大相差约 0.905 rad，参考关节速度最大约 3.46 rad/s，不能沿用旧站姿直接切入。新配置的 FixStand 目标已按 SDK 顺序设置为本动作第 0 帧，仍使用独立站立 PD；进入舞蹈时恢复训练 PD。
+新动作第 0 帧为屈膝、不对称的动作姿态，关节角与原 FixStand 最大相差约 0.905 rad，参考关节速度最大约 3.46 rad/s，不能沿用旧站姿直接切入。新配置的 FixStand 目标已按 SDK 顺序设置为本动作第 0 帧，使用独立站立 PD；四个踝关节（SDK 4、5、10、11）按用户此前指定参数设为 Kp=150、Kd=3，其他关节保留原站立参数。进入舞蹈时恢复训练 PD。
 
 这只保证准备目标与首帧关节角一致，不能证明它可静态站稳。现有离线验证从参考首帧直接初始化，没有验证 3 秒准备过程或增益切换。
 
@@ -47,10 +71,10 @@ python tools/verify_beyondmimic.py \
   --package deploy/robots/g1_29dof/config/policy/beyondmimic/guohua_show_dance \
   --offline-binary deploy/robots/g1_29dof/build/beyondmimic_offline \
   --mjcf /实际路径/g1_dance/whole_body_tracking/source/whole_body_tracking/whole_body_tracking/assets/unitree_description/mjcf/g1.xml \
-  --seconds 10 --report /tmp/guohua_show_dance_verification.json
+  --seconds 48 --report /tmp/guohua_show_dance_verification.json
 ```
 
-需要验证完整 DDS 状态机时，仿真域使用 `lo` / domain 1，配置选择 `--config config/beyondmimic_guohua_show_dance.yaml`，按键与原舞蹈一致。不要在真机 domain 0 下运行尚未通过闭环的配置。
+需要验证完整 DDS 状态机时，仿真域使用 `lo` / domain 1，配置选择 `--config config/beyondmimic_guohua_show_dance.yaml`，按键与原舞蹈一致。上面的真机命令是用户要求的调试入口，不代表全段部署已经通过验证。
 
 2026-11-12 使用实际 C++ 核心及 MuJoCo 3.8.0 验证：
 

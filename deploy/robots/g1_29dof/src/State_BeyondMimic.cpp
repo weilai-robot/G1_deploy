@@ -21,6 +21,8 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     if(end_frame_<=start_frame_) throw std::runtime_error("Empty BeyondMimic segment");
     registered_checks.insert(registered_checks.begin(),{[this]{return stopped_.load();},FSMStringMap.right.at("Passive")});
     spdlog::info("BeyondMimic loaded: 160 obs / 29 actions, {} frames, leg odometry",motion_->frames());
+    spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {} s; segment end enters damping",
+                 start_frame_, end_frame_, (end_frame_-start_frame_)*core_->config().dt);
 }
 
 beyondmimic::Snapshot State_BeyondMimic::snapshot() {

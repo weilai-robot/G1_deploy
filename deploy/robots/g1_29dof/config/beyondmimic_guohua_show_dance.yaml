@@ -77,19 +77,20 @@ FSM:
     transitions:
       Passive: LT + B.on_pressed
       BeyondMimic: LT(2s) + right.on_pressed
+    # Separate standing PD; ankle Kp/Kd=150/3 as requested.
     kp:
     - 100.0
     - 100.0
     - 100.0
     - 150.0
-    - 40.0
-    - 40.0
+    - 150.0
+    - 150.0
     - 100.0
     - 100.0
     - 100.0
     - 150.0
-    - 40.0
-    - 40.0
+    - 150.0
+    - 150.0
     - 200.0
     - 200.0
     - 200.0
@@ -112,14 +113,14 @@ FSM:
     - 2.0
     - 2.0
     - 4.0
-    - 2.0
-    - 2.0
+    - 3.0
+    - 3.0
     - 2.0
     - 2.0
     - 2.0
     - 4.0
-    - 2.0
-    - 2.0
+    - 3.0
+    - 3.0
     - 5.0
     - 5.0
     - 5.0
@@ -176,7 +177,7 @@ FSM:
       Passive: LT + B.on_pressed
     policy_dir: config/policy/beyondmimic/guohua_show_dance
     start_frame: 0
-    duration_s: 10.0
+    duration_s: 48.0 # One complete pass, 2400 frames at 50 Hz; guards may stop early.
     max_start_error: 0.25
     max_tilt: 0.85
     max_target_speed: 8.0
