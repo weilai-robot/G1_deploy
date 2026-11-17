@@ -3,6 +3,9 @@
 State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(state,name) {
     auto cfg=param::config["FSM"][name];
     first_frame_test_=cfg["first_frame_test"].as<bool>(false);
+    direct_from_fixstand_=cfg["direct_from_fixstand"].as<bool>(!first_frame_test_);
+    if(first_frame_test_ && direct_from_fixstand_)
+        throw std::runtime_error("First-frame diagnostic cannot start policy directly");
     auto path=param::proj_dir/cfg["policy_dir"].as<std::string>();
     core_=std::make_unique<beyondmimic::Core>(beyondmimic::load_config(path/"deploy.yaml"));
     motion_=std::make_unique<beyondmimic::Motion>((path/"reference.bin").string());
@@ -10,6 +13,7 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     lowstate->set_timeout_ms(100);
     start_frame_=cfg["start_frame"].as<std::size_t>(0);
     const float duration=cfg["duration_s"].as<float>(10.0f);
+    const bool full_motion=cfg["play_full_motion"].as<bool>(true);
     max_start_error_=cfg["max_start_error"].as<float>(0.25f);
     max_tilt_=cfg["max_tilt"].as<float>(0.85f);
     max_target_speed_=cfg["max_target_speed"].as<float>(8.0f);
@@ -18,20 +22,21 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     const float prepare_duration=cfg["prepare_duration_s"].as<float>(0);
     if(!std::isfinite(prepare_duration) || prepare_duration<0)
         throw std::runtime_error("Invalid preparation duration");
-    preparation_enabled_=prepare_duration>0;
+    preparation_enabled_=!direct_from_fixstand_ && prepare_duration>0;
     if(first_frame_test_ && !preparation_enabled_)
         throw std::runtime_error("First-frame test requires preparation");
-    if(start_frame_>=motion_->frames() || !std::isfinite(duration) || duration<=0 || duration>300 ||
-       !(max_start_error_>0 && max_start_error_<0.8f) || !(max_tilt_>0 && max_tilt_<1.5f) ||
+    if(!(max_start_error_>0 && max_start_error_<0.8f) || !(max_tilt_>0 && max_tilt_<1.5f) ||
        !(max_target_speed_>0 && max_target_speed_<=20) || !(max_anchor_error_>0 && max_anchor_error_<=1))
         throw std::runtime_error("Invalid BeyondMimic segment/limits");
-    end_frame_=std::min(motion_->frames(),start_frame_+static_cast<std::size_t>(duration/core_->config().dt));
-    if(end_frame_<=start_frame_) throw std::runtime_error("Empty BeyondMimic segment");
+    const auto range=beyondmimic::playback_range(motion_->frames(),core_->config().dt,start_frame_,full_motion,duration);
+    end_frame_=range.end;
+    if(direct_from_fixstand_ || preparation_enabled_) {
+        const auto poses=param::config["FSM"]["FixStand"]["qs"];
+        if(!poses.IsSequence() || poses.size()==0) throw std::runtime_error("Missing FixStand posture");
+        standing_q_=beyondmimic::read_array<beyondmimic::J>(poses[poses.size()-1]);
+    }
     if(preparation_enabled_) {
         const auto stand=param::config["FSM"]["FixStand"];
-        const auto poses=stand["qs"];
-        if(!poses.IsSequence() || poses.size()==0) throw std::runtime_error("Missing FixStand preparation posture");
-        standing_q_=beyondmimic::read_array<beyondmimic::J>(poses[poses.size()-1]);
         preparation_cfg_.standing_kp=beyondmimic::read_array<beyondmimic::J>(stand["kp"]);
         preparation_cfg_.standing_kd=beyondmimic::read_array<beyondmimic::J>(stand["kd"]);
         preparation_cfg_.pose_duration=prepare_duration;
@@ -74,8 +79,10 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
                      preparation_cfg_.policy_kp[3],preparation_cfg_.policy_kp[9],
                      preparation_cfg_.policy_kp[4],preparation_cfg_.policy_kp[10]);
     } else {
-        spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {} s; segment end enters damping",
+        spdlog::info("BeyondMimic segment: start_frame={} end_frame={} (exclusive), {:.2f} s; segment end enters damping",
                      start_frame_, end_frame_, (end_frame_-start_frame_)*core_->config().dt);
+        spdlog::info("BeyondMimic playback: full_motion={} direct_from_fixstand={} preparation={}",
+                     full_motion,direct_from_fixstand_,preparation_enabled_);
         if(!enforce_anchor_error_)
             spdlog::warn("Torso/reference position error stop DISABLED; {} m threshold is log-only; other protections remain active",
                          max_anchor_error_);
@@ -107,12 +114,8 @@ void State_BeyondMimic::enter() {
         auto current=snapshot();
         const auto ref=motion_->frame(start_frame_);
         const auto& cfg=core_->config();
-        float error=0;
-        for(int i=0;i<beyondmimic::J;++i) {
-            const int sdk=cfg.sdk_indices[i];
-            const float expected=preparation_enabled_ ? standing_q_[sdk] : ref.q[i];
-            error=std::max(error,std::abs(current.q[sdk]-expected));
-        }
+        const float error=beyondmimic::start_posture_error(current.q,standing_q_,ref.q,cfg.sdk_indices,
+                                                         direct_from_fixstand_ || preparation_enabled_);
         if(error>max_start_error_) throw std::runtime_error("Initial posture differs from required start by "+std::to_string(error)+" rad; return to FixStand");
         {
             std::lock_guard<std::mutex> lock(target_mutex_);
@@ -131,6 +134,7 @@ void State_BeyondMimic::enter() {
             motor.dq()=0; motor.tau()=0;
         }
         if(preparation_enabled_) spdlog::info("BeyondMimic: starting preparation from FixStand; policy clock has not started");
+        else if(direct_from_fixstand_) spdlog::info("BeyondMimic: starting policy directly from FixStand; no first-frame preparation");
         running_=true;
         worker_=std::thread(&State_BeyondMimic::policy_loop,this);
     } catch(const std::exception& e) {
@@ -212,10 +216,9 @@ void State_BeyondMimic::policy_loop() {
         if(first_frame_test_) return;
         const auto initial=snapshot();
         const auto first=motion_->frame(start_frame_);
-        float error=0;
-        for(int i=0;i<beyondmimic::J;++i)
-            error=std::max(error,std::abs(initial.q[core_->config().sdk_indices[i]]-first.q[i]));
-        if(error>max_start_error_) throw std::runtime_error("Motion first-frame posture check failed after preparation");
+        const float error=beyondmimic::start_posture_error(initial.q,standing_q_,first.q,core_->config().sdk_indices,
+                                                         direct_from_fixstand_);
+        if(error>max_start_error_) throw std::runtime_error("Required start posture check failed before policy inference");
         core_->reset(initial,first);
         spdlog::info("BeyondMimic: restored training PD from deploy.yaml for {} joints; starting reference frame {}",
                      beyondmimic::J, start_frame_);

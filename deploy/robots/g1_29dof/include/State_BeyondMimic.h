@@ -4,6 +4,7 @@
 #include "beyondmimic/package.h"
 #include "beyondmimic/preparation.h"
 #include "beyondmimic/position_error_guard.h"
+#include "beyondmimic/playback.h"
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -38,6 +39,7 @@ private:
     bool enforce_anchor_error_=true;
     bool preparation_enabled_=false;
     bool first_frame_test_=false;
+    bool direct_from_fixstand_=true;
 };
 REGISTER_FSM(State_BeyondMimic)
 

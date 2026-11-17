@@ -2,7 +2,7 @@
 
 适用对象：G1 EDU U2、29DOF，运行本仓库的 BeyondMimic `dance_zui` 模型。
 
-**当前默认请求执行最初 30 秒，结束后进入阻尼，需要吊装承重，保护可提前退出。原 10 秒闭环仿真通过，但此前长段仿真约 15 秒失稳；当前 30 秒配置和整段动作均未通过部署验证。** 本文的启动操作用于吊装试验。
+**当前两支正常舞蹈默认从 FixStand 直接运行完整一次：dance_zui 为 227.68 秒，guohua 为 48 秒。结束后进入阻尼，需要吊装承重，保护可提前退出。原 10 秒闭环仿真通过，但长段及新的直接启动流程均未通过部署验证。** 本文的启动操作用于吊装试验。
 
 ## 第 1 步：远程登录 G1 的开发电脑
 
@@ -188,9 +188,9 @@ FSM: Start Passive
 |---|---|
 | 按 `L2 + 方向键上` | 进入 `FixStand`，用 3 秒过渡到训练默认站姿 |
 | 等待至少 3 秒，保持防跌落保护，让双脚稳定接触平整地面 | 给腿部里程计提供有效的接触条件 |
-| 持续按住 `L2` 至少 2 秒，再按 `方向键右` | 进入 `BeyondMimic`，请求默认 30 秒策略段，保护可提前退出 |
+| 持续按住 `L2` 至少 2 秒，再按 `方向键右` | 从 FixStand 直接运行策略，默认完整一次；保护可提前退出 |
 | 按 `L2 + B` | 退出策略，进入 `Passive` 阻尼 |
-| 默认 30 秒结束 | 自动进入阻尼，需要吊装承重 |
+| 全部参考帧播放结束 | 自动进入阻尼，需要吊装承重 |
 
 不要在双脚悬空时开始本策略，腿部里程计需要支撑脚接地。此配置不使用 `R1 + X` 启动，也不通过摇杆改变参考动作。
 
@@ -212,9 +212,9 @@ tail -n 100 ~/G1_deploy/deploy/robots/g1_29dof/log/log.txt
 | 动态库 `not found` / 程序加载库失败 | 运行 `sudo ldconfig` 并重新检查 `ldd`；确认运行库架构正确 |
 | 一直停在 `Waiting for connection to robot` | 核对网卡、内部网络、机器人是否启动，以及 DDS domain 是否为 0 |
 | `The other process is using the lowcmd channel` | 确认原控制程序或其他部署进程已退出，再重新启动 |
-| `Initial posture differs from reference` | 保持保护，重新进入 `FixStand`，等待站姿稳定后再切换 |
+| `Initial posture differs from required start` / `Required start posture check failed` | 保持保护，重新进入 `FixStand`，等待原站姿稳定后再切换；正常直接启动不要求先到舞蹈首帧 |
 | 策略刚进入就回到 `Passive` | 查看紧邻的 `BeyondMimic -> Passive` 原因，核对超时、IMU、姿态及估计误差；不要反复直接重启策略 |
-| `Segment completed` | 正常的默认 30 秒结束，并非程序故障；随后转阻尼 |
+| `Segment completed` | 正常的完整动作或显式指定的运行段结束；随后转阻尼 |
 
 ## 以后每次 git pull 更新后怎么做
 

@@ -1,6 +1,6 @@
 # guohua_show_dance: same controls and 160-observation interface as dance_zui.
-# FixStand retains the original standing pose; prepare after the dance button.
-# Standing/transition/real-robot validation is pending; keep fall-arrest support.
+# FixStand retains the original standing pose; the dance button starts policy directly.
+# Direct-start/full-motion real-robot validation is pending; keep fall-arrest support.
 FSM:
   _:
     Passive:
@@ -178,13 +178,8 @@ FSM:
       Passive: LT + B.on_pressed
     policy_dir: config/policy/beyondmimic/guohua_show_dance
     start_frame: 0
-    prepare_duration_s: 0.6
-    prepare_gain_duration_s: 0.1
-    prepare_settle_duration_s: 0.04
-    prepare_settle_timeout_s: 0.5
-    prepare_max_target_speed: 2.0
-    prepare_max_joint_speed: 0.5
-    duration_s: 48.0 # One complete pass, 2400 frames at 50 Hz; guards may stop early.
+    direct_from_fixstand: true
+    play_full_motion: true
     max_start_error: 0.25
     max_tilt: 0.85
     max_target_speed: 8.0
