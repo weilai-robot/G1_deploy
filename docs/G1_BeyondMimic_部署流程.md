@@ -206,6 +206,6 @@ python tools/export_beyondmimic.py \
   --output deploy/robots/g1_29dof/config/policy/beyondmimic/dance_zui
 ```
 
-导出器读取训练源码中的关节顺序、默认姿态、执行器参数和 URDF 运动学。当前明确支持这个 160 维观测、29 维动作、50 Hz、ELU MLP 任务；154 维无状态估计模型、RNN 或其他机器人模型会被拒绝或需要另行适配。检查点的默认经验归一化使用 `(obs - mean) / (std + 0.01)`；若原训练修改了 epsilon，需要显式传入匹配的 `--normalizer-eps`。
+导出器读取训练源码中的关节顺序、默认姿态、执行器参数和 URDF 运动学。支持训练出的 160 维（全观测）或 154 维（部署变体：去掉 motion_anchor_pos_b 与 base_lin_vel）29 维动作、50 Hz、ELU MLP 检查点；RNN 或其他机器人模型会被拒绝或需要另行适配。检查点的默认经验归一化使用 `(obs - mean) / (std + 0.01)`；若原训练修改了 epsilon，需要显式传入匹配的 `--normalizer-eps`。
 
 参考动作必须与检查点对应，不应只因关节维度一致就替换成另一段动作。导出器的 shape 检查和散列记录不能证明任意检查点与动作的训练对应关系。

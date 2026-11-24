@@ -1,0 +1,194 @@
+# gLO x Tracking-Flat-G1-Deploy-v0 (TASK_20261121_099, model_4999.pt).
+# First 154-observation deploy variant: motion_anchor_pos_b and base_lin_vel are
+# absent from the policy input, so no leg-odometry quantity reaches inference.
+# gLO frame 0 is the training default stance (measured 0.0000 rad from FixStand),
+# so entry is direct, like dance_zui; no preparation phase.
+# Same controls and button mapping as dance_zui (beyondmimic.yaml).
+FSM:
+  _:
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    BeyondMimic:
+      id: 201
+      type: BeyondMimic
+  Passive:
+    transitions:
+      FixStand: LT + up.on_pressed
+    mode:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    kd:
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+    - 3.0
+  FixStand:
+    transitions:
+      Passive: LT + B.on_pressed
+      BeyondMimic: LT(2s) + right.on_pressed
+    # Standing PD based on config.yaml, with ankle Kp/Kd set to 150/3 for trial (not validated).
+    # Dance entry restores training PD from deploy.yaml.
+    kp:
+    - 100.0
+    - 100.0
+    - 100.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 100.0
+    - 100.0
+    - 100.0
+    - 150.0
+    - 150.0
+    - 150.0
+    - 200.0
+    - 200.0
+    - 200.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    - 40.0
+    kd:
+    - 2.0
+    - 2.0
+    - 2.0
+    - 4.0
+    - 3.0
+    - 3.0
+    - 2.0
+    - 2.0
+    - 2.0
+    - 4.0
+    - 3.0
+    - 3.0
+    - 5.0
+    - 5.0
+    - 5.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    - 10.0
+    ts:
+    - 0
+    - 3
+    qs:
+    - []
+    - - -0.312
+      - 0.0
+      - 0.0
+      - 0.669
+      - -0.363
+      - 0.0
+      - -0.312
+      - 0.0
+      - 0.0
+      - 0.669
+      - -0.363
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.2
+      - 0.2
+      - 0.0
+      - 0.6
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.2
+      - -0.2
+      - 0.0
+      - 0.6
+      - 0.0
+      - 0.0
+      - 0.0
+  BeyondMimic:
+    transitions:
+      Passive: LT + B.on_pressed
+    policy_dir: config/policy/beyondmimic/glo_deploy
+    start_frame: 0
+    # Staged real-robot escalation 10 -> 30 -> 49 s (full motion, 2450 frames at
+    # 50 Hz); raise only after each stage completes with the robot upright.
+    duration_s: 10.0
+    max_start_error: 0.25
+    max_tilt: 0.85
+    max_target_speed: 8.0
+    # Log torso/reference drift without stopping this dance; other guards remain
+    # active. MuJoCo verification measured 0.785 m leg-odometry drift over the
+    # 49 s gLO motion, far beyond the 0.35 m log threshold by the end.
+    enforce_anchor_error: false
+    max_anchor_error: 0.35
