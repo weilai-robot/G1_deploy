@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Package this repository's 160-observation G1 BeyondMimic checkpoint without Isaac Lab.
+"""Package this repository's G1 BeyondMimic checkpoint without Isaac Lab.
 
 The actor ONNX takes RAW observations; the checkpoint's empirical normalization is
 inside the graph. Reference motion is a separate versioned little-endian table.
+
+Supports the trained 160-observation (full state) and 154-observation
+(deploy variant without motion_anchor_pos_b / base_lin_vel) actors.
 """
 import argparse
 import ast
@@ -116,13 +119,14 @@ class Actor(nn.Module):
             if i + 1 != len(ids):
                 layers.append(nn.ELU())
         self.actor = nn.Sequential(*layers)
-        if layers[0].in_features != 160 or layers[-1].out_features != 29:
-            raise ValueError("This integration requires the trained 160 -> 29 MLP")
+        if layers[0].in_features not in (154, 160) or layers[-1].out_features != 29:
+            raise ValueError("This integration requires the trained 154/160 -> 29 MLP")
+        self.obs_dim = layers[0].in_features
         norm = checkpoint["obs_norm_state_dict"]
         self.register_buffer("mean", norm["_mean"].float())
         self.register_buffer("std", norm["_std"].float())
         self.eps = eps
-        if self.mean.numel() != 160 or self.std.numel() != 160:
+        if self.mean.numel() != self.obs_dim or self.std.numel() != self.obs_dim:
             raise ValueError("Normalizer dimensions do not match actor")
         if not torch.isfinite(self.mean).all() or not torch.isfinite(self.std).all() or (self.std < 0).any():
             raise ValueError("Invalid normalizer values")
@@ -196,13 +200,14 @@ def main():
         raise ValueError("Non-finite reference data")
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
     actor = Actor(checkpoint, args.normalizer_eps).eval()
+    obs_dim = actor.obs_dim
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=True)
     model = out / "policy.onnx"
-    torch.onnx.export(actor, torch.zeros(1, 160), str(model), input_names=["obs"], output_names=["actions"],
+    torch.onnx.export(actor, torch.zeros(1, obs_dim), str(model), input_names=["obs"], output_names=["actions"],
                       opset_version=17, dynamo=False)
     proto = onnx.load(str(model))
-    onnx.helper.set_model_props(proto, {"format": "beyondmimic_g1_160_v1", "normalizer": "embedded",
+    onnx.helper.set_model_props(proto, {"format": f"beyondmimic_g1_{obs_dim}_v1", "normalizer": "embedded",
                                        "joint_names": ",".join(names), "source_checkpoint_sha256": sha(args.checkpoint)})
     onnx.checker.check_model(proto)
     onnx.save(proto, str(model))
@@ -210,7 +215,7 @@ def main():
     generator = np.random.default_rng(17)
     max_error = 0.0
     for _ in range(64):
-        x = generator.normal(size=(1, 160)).astype(np.float32)
+        x = generator.normal(size=(1, obs_dim)).astype(np.float32)
         # Sample near the training distribution, as well as unnormalised random inputs.
         x = x * actor.std.numpy() + actor.mean.numpy()
         expected = actor(torch.from_numpy(x)).detach().numpy()
@@ -221,8 +226,8 @@ def main():
     with reference.open("wb") as f:
         f.write(struct.pack("<8sIIIf", b"BMG1V1\0\0", len(q), 29, len(BODY_NAMES), 1 / fps))
         f.write(records.tobytes())
-    config = {"format": "beyondmimic_g1_160_v1", "model": "policy.onnx", "reference": "reference.bin",
-              "step_dt": 1 / fps, "observation_dim": 160, "action_dim": 29,
+    config = {"format": f"beyondmimic_g1_{obs_dim}_v1", "model": "policy.onnx", "reference": "reference.bin",
+              "step_dt": 1 / fps, "observation_dim": obs_dim, "action_dim": 29,
               "joint_names": names, "sdk_indices": [SDK_NAMES.index(n) for n in names],
               "body_names": BODY_NAMES, "anchor_body_name": "torso_link", **params, "kinematics": chains,
               "normalizer": {"embedded": True, "epsilon": args.normalizer_eps}}
@@ -231,7 +236,7 @@ def main():
                 "motion": args.motion.name, "motion_sha256": sha(args.motion),
                 "policy_sha256": sha(model), "reference_sha256": sha(reference), "urdf_sha256": sha(urdf),
                 "deploy_yaml_sha256": sha(out / "deploy.yaml"),
-                "frames": len(q), "fps": fps, "normalizer_epsilon": args.normalizer_eps,
+                "frames": len(q), "fps": fps, "observation_dim": obs_dim, "normalizer_epsilon": args.normalizer_eps,
                 "onnx_parity_samples": 64, "onnx_max_abs_error": max_error}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, indent=2))

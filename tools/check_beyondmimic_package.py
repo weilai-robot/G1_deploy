@@ -23,7 +23,7 @@ def main():
     if (magic != b"BMG1V1\0\0" or joints != 29 or bodies != 14 or abs(dt-0.02)>1e-6 or
         frames != manifest["frames"] or (package/"reference.bin").stat().st_size != 24+frames*156*4):
         raise SystemExit("FAILED: invalid reference table")
-    print("PASS: policy and reference checksums, 160 observations / 29 actions, 50 Hz,", frames, "frames")
+    print(f"PASS: policy and reference checksums, {manifest.get('observation_dim', 160)} observations / 29 actions, 50 Hz,", frames, "frames")
 
 
 if __name__ == "__main__":
