@@ -4,6 +4,12 @@
 #include <iomanip>
 #include <iostream>
 
+void array_json(const float* values,std::size_t count) {
+    bool first=true;
+    std::cout << '[';
+    for(std::size_t i=0;i<count;++i) { if(!first) std::cout << ','; first=false; std::cout << values[i]; }
+    std::cout << ']';
+}
 template<class Values>
 void array_json(const Values& values) {
     bool first=true;
@@ -18,7 +24,7 @@ int main(int argc,char** argv) {
         auto cfg=beyondmimic::load_config(package/"deploy.yaml");
         beyondmimic::Core core(cfg);
         beyondmimic::Motion motion((package/"reference.bin").string());
-        beyondmimic::Runner runner(package/"policy.onnx");
+        beyondmimic::Runner runner(package/"policy.onnx",cfg.obs_dim);
         bool initialised=false;
         std::string line;
         std::cout << std::setprecision(9);
@@ -45,7 +51,7 @@ int main(int argc,char** argv) {
             auto obs=core.observe(s,ref,true,truth?&position:nullptr,truth?&velocity:nullptr);
             auto actions=runner.act(obs);
             auto targets=core.targets(actions,s,input["max_speed"]?input["max_speed"].as<float>():8.0f);
-            std::cout << "{\"obs\":"; array_json(obs);
+            std::cout << "{\"obs\":"; array_json(obs.data(),std::size_t(cfg.obs_dim));
             std::cout << ",\"actions\":"; array_json(actions);
             std::cout << ",\"targets\":"; array_json(targets);
             std::cout << ",\"position\":"; array_json(core.position());

@@ -6,7 +6,7 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     auto path=param::proj_dir/cfg["policy_dir"].as<std::string>();
     core_=std::make_unique<beyondmimic::Core>(beyondmimic::load_config(path/"deploy.yaml"));
     motion_=std::make_unique<beyondmimic::Motion>((path/"reference.bin").string());
-    if(!first_frame_test_) runner_=std::make_unique<beyondmimic::Runner>(path/"policy.onnx");
+    if(!first_frame_test_) runner_=std::make_unique<beyondmimic::Runner>(path/"policy.onnx",core_->config().obs_dim);
     lowstate->set_timeout_ms(100);
     start_frame_=cfg["start_frame"].as<std::size_t>(0);
     const float duration=cfg["duration_s"].as<float>(10.0f);
@@ -65,7 +65,7 @@ State_BeyondMimic::State_BeyondMimic(int state,std::string name) : FSMState(stat
     }
     registered_checks.insert(registered_checks.begin(),{[this]{return stopped_.load();},FSMStringMap.right.at("Passive")});
     if(first_frame_test_) spdlog::info("First-frame test reference loaded: {} frames; no policy runner created",motion_->frames());
-    else spdlog::info("BeyondMimic loaded: 160 obs / 29 actions, {} frames, leg odometry",motion_->frames());
+    else spdlog::info("BeyondMimic loaded: {} obs / 29 actions, {} frames, leg odometry",core_->config().obs_dim,motion_->frames());
     if(first_frame_test_) {
         spdlog::warn("FIRST FRAME TEST ONLY: policy inference DISABLED; holding reference frame {} until L2+B or protection exit",
                      start_frame_);
@@ -231,7 +231,8 @@ void State_BeyondMimic::policy_loop() {
             if(std::min(ref.positions[3].z(),ref.positions[6].z())>reference_floor+0.10f)
                 throw std::runtime_error("Reference flight/jump is unsupported by contact leg odometry");
             auto obs=core_->observe(current,ref);
-            const float anchor_error=beyondmimic::Vec(obs[58],obs[59],obs[60]).norm();
+            // Supervisor guard, independent of the observation layout (154-dim obs omit this block).
+            const float anchor_error=core_->anchor_error();
             const bool position_limit_exceeded=beyondmimic::check_anchor_position_error(
                 anchor_error,max_anchor_error_,enforce_anchor_error_);
             auto action=runner_->act(obs);

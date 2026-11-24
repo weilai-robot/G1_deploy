@@ -61,6 +61,7 @@ def main():
         p.error("--max-target-speed must be in (0,20]")
     package = args.package.resolve()
     cfg = yaml.safe_load((package/"deploy.yaml").read_text())
+    obs_dim = int(cfg["observation_dim"])
     manifest = json.loads((package/"manifest.json").read_text())
     for file, key in (("policy.onnx", "policy_sha256"), ("reference.bin", "reference_sha256"),
                       ("deploy.yaml", "deploy_yaml_sha256")):
@@ -136,6 +137,8 @@ def main():
             matrix(data.qpos[3:7]).T@data.qvel[:3], data.qvel[3:6],
             data.qpos[qids[ids]]-defaults, data.qvel[vids[ids]], last_action,
         ]).astype(np.float32)
+        if obs_dim == 154:  # deploy variant drops motion_anchor_pos_b [58:61] and base_lin_vel [67:70]
+            expected = np.concatenate([expected[:58], expected[61:67], expected[70:]])
         np.testing.assert_allclose(result["obs"], expected, rtol=1e-4, atol=3e-5)
         actual_action = session.run(["actions"], {"obs": expected[None]})[0][0]
         np.testing.assert_allclose(result["actions"], actual_action, rtol=2e-4, atol=2e-4)

@@ -16,6 +16,9 @@
 #include <vector>
 
 namespace beyondmimic {
+// O is the observation buffer capacity (full-state variant); Config::obs_dim
+// selects the trained layout: 160 (full) or 154 (deploy, no relative torso
+// position and no base linear velocity).
 constexpr int J = 29, B = 14, O = 160, RecordSize = 2 * J + 7 * B;
 using Vec = Eigen::Vector3f;
 using Quat = Eigen::Quaternionf;
@@ -113,7 +116,9 @@ struct Config {
     Joints default_q{}, kp{}, kd{}, action_scale{}, lower{}, upper{}, effort{};
     Chain torso, left_foot, right_foot;
     float dt = 0.02f;
+    int obs_dim = O;
     void validate() const {
+        if (obs_dim != 154 && obs_dim != O) throw std::runtime_error("Unsupported observation dimension");
         std::set<int> ids(sdk_indices.begin(), sdk_indices.end());
         if (ids.size()!=J || *ids.begin()!=0 || *ids.rbegin()!=J-1 || std::abs(dt-0.02f)>1e-6f)
             throw std::runtime_error("Invalid SDK joint permutation or policy dt");
@@ -211,27 +216,32 @@ public:
         validate_snapshot(s);
         if (update_odometry) odometry_.update(s);
         const Vec root_pos = measured_position ? *measured_position : odometry_.position();
-        const Vec velocity = measured_velocity_b ? *measured_velocity_b : odometry_.velocity_b();
         const auto torso = forward_kinematics(cfg_.torso,s.q);
         const Quat torso_q = s.orientation*Quat(torso.rotation());
-        const Vec torso_pos = root_pos+s.orientation*torso.translation();
-        const Vec ref_pos = alignment_*ref.positions[7]+translation_;
         const Quat ref_q = alignment_*ref.orientations[7];
-        const Vec relative = torso_q.conjugate()*(ref_pos-torso_pos);
         const auto rot = (torso_q.conjugate()*ref_q).toRotationMatrix();
+        const Vec ref_pos = alignment_*ref.positions[7]+translation_;
+        const Vec torso_pos = root_pos+s.orientation*torso.translation();
+        const Vec relative = torso_q.conjugate()*(ref_pos-torso_pos);
+        anchor_error_ = relative.norm();  // supervisor guard; layout-independent
         std::array<float,O> obs{};
         int k=0;
         auto append = [&](const auto& values) { for (float v : values) obs[k++] = v; };
         append(ref.q); append(ref.dq);
-        for(int i=0;i<3;++i) obs[k++] = relative[i];
+        if (cfg_.obs_dim != 154)  // deploy variant drops the torso-relative reference position
+            for(int i=0;i<3;++i) obs[k++] = relative[i];
         // Isaac Lab matrix[..., :2].reshape: row-major first two columns.
         for(int i=0;i<3;++i) for(int j=0;j<2;++j) obs[k++] = rot(i,j);
-        for(int i=0;i<3;++i) obs[k++] = velocity[i];
+        if (cfg_.obs_dim != 154) {  // deploy variant drops base linear velocity (leg-odometry derived)
+            const Vec velocity = measured_velocity_b ? *measured_velocity_b : odometry_.velocity_b();
+            for(int i=0;i<3;++i) obs[k++] = velocity[i];
+        }
         for(int i=0;i<3;++i) obs[k++] = s.angular_velocity[i];
         for(int i=0;i<J;++i) obs[k++] = s.q[cfg_.sdk_indices[i]]-cfg_.default_q[i];
         for(int i=0;i<J;++i) obs[k++] = s.dq[cfg_.sdk_indices[i]];
         append(last_action_);
-        for(float v : obs) if (!std::isfinite(v)) throw std::runtime_error("Invalid observation");
+        if (k != cfg_.obs_dim) throw std::runtime_error("Observation layout mismatch");
+        for(int i=0;i<k;++i) if (!std::isfinite(obs[i])) throw std::runtime_error("Invalid observation");
         return obs;
     }
     Joints targets(const Joints& action, const Snapshot& state, float max_speed=8.0f) {
@@ -258,6 +268,7 @@ public:
     }
     const Vec& position() const { return odometry_.position(); }
     const Vec& velocity_b() const { return odometry_.velocity_b(); }
+    float anchor_error() const { return anchor_error_; }
     int clipped() const { return clipped_; }
     const Config& config() const { return cfg_; }
 private:
@@ -267,5 +278,6 @@ private:
     Vec translation_ = Vec::Zero();
     Joints last_action_{}, last_target_{};
     int clipped_ = 0;
+    float anchor_error_ = 0;
 };
 } // namespace beyondmimic
